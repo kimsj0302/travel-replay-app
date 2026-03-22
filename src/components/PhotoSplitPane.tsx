@@ -4,7 +4,7 @@ import { usePhotoPaneWidth } from '../hooks/usePhotoPaneWidth';
 import type { PhotoGroup } from '../types';
 
 interface PhotoSplitPaneProps {
-  group: PhotoGroup;
+  group: PhotoGroup | null;
   onClose: () => void;
 }
 

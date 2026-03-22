@@ -7,8 +7,9 @@ interface PlaybackControlsProps {
   onPlay: () => void;
   onPause: () => void;
   onReset: () => void;
-  onSeek: (progress: number) => void;
   onSpeedChange: (speed: SpeedOption) => void;
+  /** 타임라인 주황색 사진 틱 클릭 시 해당 그룹 시점으로 이동 */
+  onJumpToGroup: (groupIndex: number) => void;
 }
 
 export default function PlaybackControls({
@@ -17,15 +18,9 @@ export default function PlaybackControls({
   onPlay,
   onPause,
   onReset,
-  onSeek,
   onSpeedChange,
+  onJumpToGroup,
 }: PlaybackControlsProps) {
-  const handleSeek = (e: React.MouseEvent<HTMLDivElement>) => {
-    const rect = e.currentTarget.getBoundingClientRect();
-    const x = e.clientX - rect.left;
-    onSeek(x / rect.width);
-  };
-
   const dateTimeStr = state.currentTime.toLocaleString('ko-KR', {
     year: 'numeric',
     month: '2-digit',
@@ -57,22 +52,28 @@ export default function PlaybackControls({
         </div>
       </div>
 
-      <div className="timeline-bar" onClick={handleSeek}>
+      <div className="timeline-bar">
         <div
           className="timeline-progress"
           style={{ width: `${state.progress * 100}%` }}
         />
-        {trip.groups.map((g) => {
+        {trip.groups.map((g, idx) => {
           const gTime = g.time.getTime();
           const start = trip.startTime.getTime();
           const end = trip.endTime.getTime();
           const pct = end > start ? ((gTime - start) / (end - start)) * 100 : 0;
           return (
-            <div
+            <button
               key={g.id}
+              type="button"
               className="timeline-photo-tick"
               style={{ left: `${pct}%` }}
-              title={`${g.photos.length} photo(s)`}
+              title={`${g.photos.length}장 · 이 시점으로 이동`}
+              aria-label={`사진 그룹 ${idx + 1}, ${g.photos.length}장, 해당 시점으로 이동`}
+              onClick={(e) => {
+                e.stopPropagation();
+                onJumpToGroup(idx);
+              }}
             />
           );
         })}

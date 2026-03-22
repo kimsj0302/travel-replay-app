@@ -222,8 +222,25 @@
   flex-direction: column;
   height: 100%;
   min-height: 0;
-  padding: 10px 14px 14px;
+  padding: 14px;
   animation: photoPanelIn 0.2s ease;
+}
+
+.photo-panel--empty .photo-panel-empty-msg {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 12px 8px;
+  text-align: center;
+}
+
+.photo-panel--empty .photo-panel-empty-msg p {
+  margin: 0;
+  font-size: 0.88rem;
+  line-height: 1.5;
+  color: var(--text-muted);
+  max-width: 240px;
 }
 
 @keyframes photoPanelIn {
@@ -235,30 +252,6 @@
     opacity: 1;
     transform: translateX(0);
   }
-}
-
-.photo-panel-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 8px;
-  flex-shrink: 0;
-}
-
-.photo-panel-title {
-  font-size: 0.85rem;
-  font-weight: 600;
-  color: var(--text-muted);
-}
-
-.photo-panel-close {
-  width: 32px;
-  height: 32px;
-  padding: 0;
-  border-radius: 6px;
-  font-size: 1.25rem;
-  line-height: 1;
-  background: rgba(255, 255, 255, 0.06);
 }
 
 .photo-panel-image-wrap {
@@ -398,7 +391,7 @@
   height: 8px;
   background: rgba(255, 255, 255, 0.1);
   border-radius: 4px;
-  cursor: pointer;
+  cursor: default;
   margin-bottom: 8px;
 }
 
@@ -409,14 +402,37 @@
   transition: width 0.05s linear;
 }
 
-.timeline-photo-tick {
+/* 주황 막대: 넓은 히트 영역, 시각은 ::after */
+button.timeline-photo-tick {
   position: absolute;
-  top: -3px;
+  top: -6px;
+  width: 16px;
+  height: 20px;
+  margin: 0;
+  padding: 0;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  transform: translateX(-50%);
+}
+
+button.timeline-photo-tick:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+button.timeline-photo-tick::after {
+  content: '';
+  position: absolute;
+  left: 50%;
+  top: 3px;
+  transform: translateX(-50%);
   width: 4px;
   height: 14px;
   background: var(--accent);
   border-radius: 2px;
-  transform: translateX(-50%);
+  pointer-events: none;
 }
 
 .controls-buttons {

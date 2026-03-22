@@ -1,4 +1,4 @@
-import { useCallback, useRef } from 'react';
+import { useCallback, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import MapView from '../components/MapView';
 import PlaybackControls from '../components/PlaybackControls';
@@ -20,7 +20,6 @@ export default function TripReplayPage({ trip }: TripReplayPageProps) {
     play,
     pause,
     reset,
-    seekToProgress,
     setUserSpeed,
     jumpToGroup,
     dismissOverlay,
@@ -32,9 +31,22 @@ export default function TripReplayPage({ trip }: TripReplayPageProps) {
     `${state.activeGroupIndex ?? 'none'}-${state.playing}`,
   );
 
+  const [markerPan, setMarkerPan] = useState<{ groupIndex: number; seq: number } | null>(null);
+
   const handleGroupClick = useCallback(
     (idx: number) => {
       jumpToGroup(idx);
+    },
+    [jumpToGroup],
+  );
+
+  const handleTimelineJump = useCallback(
+    (idx: number) => {
+      jumpToGroup(idx);
+      setMarkerPan((prev) => ({
+        groupIndex: idx,
+        seq: (prev?.seq ?? 0) + 1,
+      }));
     },
     [jumpToGroup],
   );
@@ -71,21 +83,18 @@ export default function TripReplayPage({ trip }: TripReplayPageProps) {
       </header>
 
       <div className="replay-body">
-        <div
-          className={`replay-split${activeGroup ? ' replay-split--with-photo' : ''}`}
-        >
+        <div className="replay-split replay-split--with-photo">
           <div className="replay-map-pane" ref={mapPaneRef}>
             <MapView
               track={trip.track}
               groups={trip.groups}
               currentPosition={position}
               onGroupClick={handleGroupClick}
-              photoPanelOpen={!!activeGroup}
+              photoPanelOpen
+              panToGroupMarker={markerPan}
             />
           </div>
-          {activeGroup && (
-            <PhotoSplitPane group={activeGroup} onClose={dismissOverlay} />
-          )}
+          <PhotoSplitPane group={activeGroup} onClose={dismissOverlay} />
         </div>
       </div>
 
@@ -95,8 +104,8 @@ export default function TripReplayPage({ trip }: TripReplayPageProps) {
         onPlay={play}
         onPause={pause}
         onReset={reset}
-        onSeek={seekToProgress}
         onSpeedChange={setUserSpeed}
+        onJumpToGroup={handleTimelineJump}
       />
     </div>
   );

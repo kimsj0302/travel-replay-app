@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import type { PhotoGroup } from '../types';
 
 interface PhotoOverlayProps {
-  group: PhotoGroup;
+  group: PhotoGroup | null;
   onClose: () => void;
 }
 
@@ -11,25 +11,37 @@ export default function PhotoOverlay({ group, onClose }: PhotoOverlayProps) {
 
   useEffect(() => {
     setIndex(0);
-  }, [group.id]);
+  }, [group?.id]);
 
   const goPrev = useCallback(() => {
     setIndex((i) => (i > 0 ? i - 1 : i));
   }, []);
 
   const goNext = useCallback(() => {
+    if (!group) return;
     setIndex((i) => (i < group.photos.length - 1 ? i + 1 : i));
-  }, [group.photos.length]);
+  }, [group]);
 
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
+      if (!group) return;
       if (e.key === 'ArrowLeft') goPrev();
       else if (e.key === 'ArrowRight') goNext();
       else if (e.key === 'Escape') onClose();
     };
     window.addEventListener('keydown', handler);
     return () => window.removeEventListener('keydown', handler);
-  }, [goPrev, goNext, onClose]);
+  }, [goPrev, goNext, onClose, group]);
+
+  if (!group || group.photos.length === 0) {
+    return (
+      <div className="photo-panel photo-panel--empty">
+        <div className="photo-panel-empty-msg">
+          <p>지도에서 사진 마커를 누르거나, 재생·타임라인으로 해당 구간에 들어가면 여기에 표시됩니다.</p>
+        </div>
+      </div>
+    );
+  }
 
   const photo = group.photos[index];
   if (!photo) return null;
@@ -38,13 +50,6 @@ export default function PhotoOverlay({ group, onClose }: PhotoOverlayProps) {
 
   return (
     <div className="photo-panel">
-      <div className="photo-panel-header">
-        <span className="photo-panel-title">사진</span>
-        <button type="button" className="photo-panel-close" onClick={onClose} aria-label="닫기">
-          &times;
-        </button>
-      </div>
-
       <div className="photo-panel-image-wrap">
         <img src={photo.objectUrl} alt={photo.file.name} className="photo-panel-img" />
       </div>
