@@ -1,8 +1,14 @@
 import type { TrackPoint } from '../types';
 
+/** `findPositionAtTime` 호출 시 `bTime === aTime` 분기가 몇 번 쓰였는지 집계할 때 사용 */
+export interface InterpolationStats {
+  degenerateSegmentHits: number;
+}
+
 export function findPositionAtTime(
   track: TrackPoint[],
   time: Date,
+  stats?: InterpolationStats,
 ): { lat: number; lon: number } | null {
   if (track.length === 0) return null;
 
@@ -28,7 +34,11 @@ export function findPositionAtTime(
   const b = track[hi];
   const aTime = a.time.getTime();
   const bTime = b.time.getTime();
-  const ratio = bTime === aTime ? 0 : (t - aTime) / (bTime - aTime);
+  const degenerate = bTime === aTime;
+  if (degenerate && stats) {
+    stats.degenerateSegmentHits += 1;
+  }
+  const ratio = degenerate ? 0 : (t - aTime) / (bTime - aTime);
 
   return {
     lat: a.lat + (b.lat - a.lat) * ratio,

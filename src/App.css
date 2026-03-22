@@ -425,8 +425,56 @@ button.timeline-photo-tick::after {
   pointer-events: none;
 }
 
+.controls-top-stats {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-shrink: 0;
+}
+
 .playback-controls .photo-count {
   color: var(--text-muted);
   font-size: 0.85rem;
   flex-shrink: 0;
+}
+
+.playback-controls .track-point-count {
+  color: var(--text-muted);
+  font-size: 0.85rem;
+  font-variant-numeric: tabular-nums;
+  flex-shrink: 0;
+}
+
+.controls-top-stats-sep {
+  color: rgba(255, 255, 255, 0.28);
+  font-size: 0.85rem;
+  user-select: none;
+}
+
+/* 타임라인 아래: GPX 트랙 포인트(파란 점) — 지도 경로색과 맞춤 */
+.timeline-gps-strip {
+  position: relative;
+  height: 10px;
+  margin-top: 6px;
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.timeline-gps-mark {
+  position: absolute;
+  bottom: 2px;
+  left: 0;
+  transform: translateX(-50%);
+  z-index: 0;
+  pointer-events: none;
+}
+
+.timeline-gps-dot {
+  display: block;
+  width: 5px;
+  height: 5px;
+  margin: 0 auto;
+  border-radius: 50%;
+  background: #3b82f6;
+  box-shadow: 0 0 0 1px rgba(15, 23, 42, 0.35);
 }

@@ -4,6 +4,10 @@ import FolderSelect from '../components/FolderSelect';
 import { parseMultipleGpxFiles } from '../utils/gpxParser';
 import { parsePhotosFromFiles } from '../utils/exifParser';
 import { buildTrip } from '../utils/tripBuilder';
+import {
+  collectInterpolationDuplicateReport,
+  formatInterpolationDuplicateSummary,
+} from '../utils/interpolationStats';
 import type { Trip } from '../types';
 
 interface ImportPageProps {
@@ -41,6 +45,15 @@ export default function ImportPage({ onTripLoaded }: ImportPageProps) {
             '/',
           )[0] ?? 'trip';
         const trip = buildTrip(folderName, track, photos);
+
+        if (import.meta.env.DEV) {
+          const dupReport = collectInterpolationDuplicateReport(track, photos);
+          console.info(
+            '[interpolation]',
+            formatInterpolationDuplicateSummary(dupReport),
+            dupReport,
+          );
+        }
 
         setStatus(`완료! 트랙포인트 ${track.length}개, 사진 ${photos.length}장`);
 
