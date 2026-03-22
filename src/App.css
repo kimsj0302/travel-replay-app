@@ -357,63 +357,53 @@
   line-height: 1.35;
 }
 
-.speed-selector {
-  display: flex;
-  gap: 2px;
-  background: rgba(255, 255, 255, 0.05);
-  border-radius: 6px;
-  padding: 2px;
-}
-
-.speed-btn {
-  font-size: 0.75rem;
-  padding: 3px 8px;
-  border-radius: 4px;
-  background: transparent;
-  color: var(--text-muted);
-  font-weight: 500;
-  min-width: 36px;
-  transition: all 0.15s;
-}
-
-.speed-btn:hover {
-  color: var(--text);
-  background: rgba(255, 255, 255, 0.08);
-}
-
-.speed-btn.active {
-  background: var(--primary);
-  color: #fff;
-}
-
 .timeline-bar {
+  position: relative;
+  padding-top: 8px;
+  margin-bottom: 8px;
+  cursor: default;
+}
+
+.timeline-track {
   position: relative;
   height: 8px;
   background: rgba(255, 255, 255, 0.1);
   border-radius: 4px;
-  cursor: default;
-  margin-bottom: 8px;
 }
 
 .timeline-progress {
-  height: 100%;
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 0;
+  max-width: 100%;
   background: var(--primary);
   border-radius: 4px;
-  transition: width 0.05s linear;
+  transition: width 0.08s linear;
+  pointer-events: none;
+}
+
+/* 사진 시점마다 주황 틱 */
+.timeline-photo-mark {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  transform: translateX(-50%);
+  z-index: 1;
 }
 
 /* 주황 막대: 넓은 히트 영역, 시각은 ::after */
 button.timeline-photo-tick {
-  position: absolute;
-  top: -6px;
+  position: relative;
   width: 16px;
-  height: 20px;
+  height: 18px;
   margin: 0;
   padding: 0;
   border: none;
   background: transparent;
   cursor: pointer;
-  transform: translateX(-50%);
+  flex-shrink: 0;
 }
 
 button.timeline-photo-tick:focus-visible {
@@ -426,7 +416,7 @@ button.timeline-photo-tick::after {
   content: '';
   position: absolute;
   left: 50%;
-  top: 3px;
+  bottom: 0;
   transform: translateX(-50%);
   width: 4px;
   height: 14px;
@@ -435,19 +425,8 @@ button.timeline-photo-tick::after {
   pointer-events: none;
 }
 
-.controls-buttons {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.controls-buttons button {
-  font-size: 1.1rem;
-  padding: 6px 14px;
-}
-
-.photo-count {
+.playback-controls .photo-count {
   color: var(--text-muted);
   font-size: 0.85rem;
-  margin-left: auto;
+  flex-shrink: 0;
 }

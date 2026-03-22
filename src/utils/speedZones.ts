@@ -1,21 +1,21 @@
-import type { PhotoGroup, SpeedSegment } from '../types';
+import type { SpeedSegment, TripPhoto } from '../types';
 
-const SLOW_ZONE_RADIUS_MS = 2 * 60 * 1000; // +/- 2 minutes around photo group
+const SLOW_ZONE_RADIUS_MS = 2 * 60 * 1000; // +/- 2 minutes around each photo
 const FAST_SPEED = 15;
 const SLOW_SPEED = 0.4;
 
 export function buildSpeedSegments(
   startMs: number,
   endMs: number,
-  groups: PhotoGroup[],
+  photos: TripPhoto[],
 ): SpeedSegment[] {
-  if (groups.length === 0) {
+  if (photos.length === 0) {
     return [{ startTime: startMs, endTime: endMs, speedFactor: FAST_SPEED }];
   }
 
-  const slowZones: { start: number; end: number }[] = groups.map((g) => ({
-    start: Math.max(startMs, g.time.getTime() - SLOW_ZONE_RADIUS_MS),
-    end: Math.min(endMs, g.time.getTime() + SLOW_ZONE_RADIUS_MS),
+  const slowZones: { start: number; end: number }[] = photos.map((p) => ({
+    start: Math.max(startMs, p.time.getTime() - SLOW_ZONE_RADIUS_MS),
+    end: Math.min(endMs, p.time.getTime() + SLOW_ZONE_RADIUS_MS),
   }));
 
   const merged: { start: number; end: number }[] = [];

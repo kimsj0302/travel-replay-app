@@ -1,16 +1,19 @@
 import type { TrackPoint, TripPhoto, Trip } from '../types';
 import { findPositionAtTime } from './interpolation';
-import { groupPhotos } from './photoGrouping';
 import { buildSpeedSegments } from './speedZones';
 
+/**
+ * GPX가 있으면 모든 사진 좌표를 촬영 시각 기준 트랙 위에 선형 보간.
+ * EXIF 유무는 `gpsSource`로만 구분(핀 색 등).
+ */
 export function fillMissingGps(photos: TripPhoto[], track: TrackPoint[]): void {
+  if (track.length === 0) return;
+
   for (const photo of photos) {
-    if (photo.gpsSource === 'interpolated') {
-      const pos = findPositionAtTime(track, photo.time);
-      if (pos) {
-        photo.lat = pos.lat;
-        photo.lon = pos.lon;
-      }
+    const pos = findPositionAtTime(track, photo.time);
+    if (pos) {
+      photo.lat = pos.lat;
+      photo.lon = pos.lon;
     }
   }
 }
@@ -21,8 +24,6 @@ export function buildTrip(
   photos: TripPhoto[],
 ): Trip {
   fillMissingGps(photos, track);
-
-  const groups = groupPhotos(photos, track);
 
   const startTime =
     track.length > 0 ? track[0].time : photos.length > 0 ? photos[0].time : new Date();
@@ -36,7 +37,7 @@ export function buildTrip(
   const speedSegments = buildSpeedSegments(
     startTime.getTime(),
     endTime.getTime(),
-    groups,
+    photos,
   );
 
   const dateStr = startTime.toISOString().slice(0, 10);
@@ -47,7 +48,6 @@ export function buildTrip(
     date: dateStr,
     track,
     photos,
-    groups,
     speedSegments,
     startTime,
     endTime,

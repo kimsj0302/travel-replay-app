@@ -1,4 +1,4 @@
-import { useCallback, useRef, useState } from 'react';
+import { useCallback, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import MapView from '../components/MapView';
 import PlaybackControls from '../components/PlaybackControls';
@@ -6,6 +6,7 @@ import PhotoSplitPane from '../components/PhotoSplitPane';
 import { usePlayback } from '../hooks/usePlayback';
 import { useReplayMapPaneLayout } from '../hooks/useReplayMapPaneLayout';
 import { tripToJson, tripToIndexEntry, downloadJson } from '../utils/exportJson';
+import { sortPhotosByTime } from '../utils/sortPhotos';
 import type { Trip } from '../types';
 
 interface TripReplayPageProps {
@@ -14,42 +15,59 @@ interface TripReplayPageProps {
 
 export default function TripReplayPage({ trip }: TripReplayPageProps) {
   const navigate = useNavigate();
-  const {
-    state,
-    position,
-    play,
-    pause,
-    reset,
-    setUserSpeed,
-    jumpToGroup,
-    dismissOverlay,
-  } = usePlayback(trip);
+  const { state, position, jumpToPhoto, dismissOverlay } = usePlayback(trip);
 
-  const mapPaneRef = useRef<HTMLDivElement>(null);
-  useReplayMapPaneLayout(
-    mapPaneRef,
-    `${state.activeGroupIndex ?? 'none'}-${state.playing}`,
+  const photosSorted = useMemo(
+    () => (trip ? sortPhotosByTime(trip.photos) : []),
+    [trip],
   );
 
-  const [markerPan, setMarkerPan] = useState<{ groupIndex: number; seq: number } | null>(null);
+  const mapPaneRef = useRef<HTMLDivElement>(null);
+  useReplayMapPaneLayout(mapPaneRef, `${state.activePhotoIndex ?? 'none'}`);
 
-  const handleGroupClick = useCallback(
+  const [markerPan, setMarkerPan] = useState<{ photoIndex: number; seq: number } | null>(null);
+
+  const handlePhotoClick = useCallback(
     (idx: number) => {
-      jumpToGroup(idx);
+      jumpToPhoto(idx);
     },
-    [jumpToGroup],
+    [jumpToPhoto],
   );
 
   const handleTimelineJump = useCallback(
     (idx: number) => {
-      jumpToGroup(idx);
+      jumpToPhoto(idx);
       setMarkerPan((prev) => ({
-        groupIndex: idx,
+        photoIndex: idx,
         seq: (prev?.seq ?? 0) + 1,
       }));
     },
-    [jumpToGroup],
+    [jumpToPhoto],
   );
+
+  const panToPhotoIndex = useCallback((idx: number) => {
+    setMarkerPan((prev) => ({
+      photoIndex: idx,
+      seq: (prev?.seq ?? 0) + 1,
+    }));
+  }, []);
+
+  const goPrevPhoto = useCallback(() => {
+    const i = state.activePhotoIndex;
+    if (i === null || i <= 0) return;
+    const idx = i - 1;
+    jumpToPhoto(idx);
+    panToPhotoIndex(idx);
+  }, [jumpToPhoto, panToPhotoIndex, state.activePhotoIndex]);
+
+  const goNextPhoto = useCallback(() => {
+    const i = state.activePhotoIndex;
+    if (i === null) return;
+    if (i >= photosSorted.length - 1) return;
+    const idx = i + 1;
+    jumpToPhoto(idx);
+    panToPhotoIndex(idx);
+  }, [jumpToPhoto, panToPhotoIndex, photosSorted.length, state.activePhotoIndex]);
 
   const handleExport = useCallback(() => {
     if (!trip) return;
@@ -66,8 +84,8 @@ export default function TripReplayPage({ trip }: TripReplayPageProps) {
     );
   }
 
-  const activeGroup =
-    state.activeGroupIndex !== null ? trip.groups[state.activeGroupIndex] ?? null : null;
+  const activePhoto =
+    state.activePhotoIndex !== null ? photosSorted[state.activePhotoIndex] ?? null : null;
 
   return (
     <div className="replay-page">
@@ -87,26 +105,25 @@ export default function TripReplayPage({ trip }: TripReplayPageProps) {
           <div className="replay-map-pane" ref={mapPaneRef}>
             <MapView
               track={trip.track}
-              groups={trip.groups}
+              photosSorted={photosSorted}
               currentPosition={position}
-              onGroupClick={handleGroupClick}
-              photoPanelOpen
-              panToGroupMarker={markerPan}
+              onPhotoClick={handlePhotoClick}
+              photoPanelOpen={state.activePhotoIndex !== null}
+              panToPhotoMarker={markerPan}
             />
           </div>
-          <PhotoSplitPane group={activeGroup} onClose={dismissOverlay} />
+          <PhotoSplitPane
+            photo={activePhoto}
+            activeIndex={state.activePhotoIndex}
+            totalPhotos={photosSorted.length}
+            onPrev={goPrevPhoto}
+            onNext={goNextPhoto}
+            onClose={dismissOverlay}
+          />
         </div>
       </div>
 
-      <PlaybackControls
-        state={state}
-        trip={trip}
-        onPlay={play}
-        onPause={pause}
-        onReset={reset}
-        onSpeedChange={setUserSpeed}
-        onJumpToGroup={handleTimelineJump}
-      />
+      <PlaybackControls state={state} trip={trip} onJumpToPhoto={handleTimelineJump} />
     </div>
   );
 }

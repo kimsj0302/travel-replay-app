@@ -42,9 +42,7 @@ export default function ImportPage({ onTripLoaded }: ImportPageProps) {
           )[0] ?? 'trip';
         const trip = buildTrip(folderName, track, photos);
 
-        setStatus(
-          `완료! 트랙포인트 ${track.length}개, 사진 ${photos.length}장, ${trip.groups.length}개 그룹`,
-        );
+        setStatus(`완료! 트랙포인트 ${track.length}개, 사진 ${photos.length}장`);
 
         onTripLoaded(trip);
         setTimeout(() => navigate('/replay'), 500);

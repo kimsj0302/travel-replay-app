@@ -39,11 +39,11 @@ export function tripToIndexEntry(trip: Trip): IndexEntry {
   const avgLat =
     trip.track.length > 0
       ? trip.track.reduce((s, p) => s + p.lat, 0) / trip.track.length
-      : trip.groups[0]?.lat ?? 0;
+      : trip.photos[0]?.lat ?? 0;
   const avgLon =
     trip.track.length > 0
       ? trip.track.reduce((s, p) => s + p.lon, 0) / trip.track.length
-      : trip.groups[0]?.lon ?? 0;
+      : trip.photos[0]?.lon ?? 0;
 
   return {
     id: trip.id,
