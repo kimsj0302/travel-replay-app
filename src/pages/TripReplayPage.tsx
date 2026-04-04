@@ -9,6 +9,7 @@ import { useReplayMapPaneLayout } from '../hooks/useReplayMapPaneLayout';
 import { findPositionAtTime } from '../utils/interpolation';
 import { sortPhotosByTime } from '../utils/sortPhotos';
 import { loadTripFromJson } from '../utils/loadTripFromJson';
+import tripManifest from 'virtual:trip-manifest';
 import type { Trip } from '../types';
 
 type LayoutMode = 'horizontal' | 'vertical';
@@ -19,28 +20,21 @@ interface SavedTrip {
   load: () => Promise<unknown>;
 }
 
-const tripModules = import.meta.glob('/jsons/*.json') as Record<string, () => Promise<{ default: unknown }>>;
+const tripLoaders = import.meta.glob('/jsons/*.json') as Record<string, () => Promise<{ default: unknown }>>;
 
-let savedTripsPromise: Promise<SavedTrip[]> | null = null;
-
-function loadSavedTrips(): Promise<SavedTrip[]> {
-  if (!savedTripsPromise) {
-    savedTripsPromise = Promise.all(
-      Object.entries(tripModules).map(async ([path, loader]) => {
-        const mod = await loader();
-        const json = (mod.default ?? mod) as { title?: string; date?: string };
-        const date = json.date ?? '';
-        const title = json.title ?? path.split('/').pop()?.replace(/\.json$/, '') ?? '';
-        return {
-          key: path,
-          label: `${date} - ${title}`,
-          load: async () => json,
-        };
-      }),
-    );
-  }
-  return savedTripsPromise;
-}
+const savedTrips: SavedTrip[] = tripManifest.map((entry) => {
+  const globKey = `/jsons/${entry.file}`;
+  return {
+    key: globKey,
+    label: `${entry.date} - ${entry.title}`,
+    load: async () => {
+      const loader = tripLoaders[globKey];
+      if (!loader) throw new Error(`파일을 찾을 수 없습니다: ${entry.file}`);
+      const mod = await loader();
+      return mod.default ?? mod;
+    },
+  };
+});
 
 interface TripReplayPageProps {
   trip: Trip | null;
@@ -53,12 +47,7 @@ export default function TripReplayPage({ trip, onTripLoaded }: TripReplayPagePro
   const [importLoading, setImportLoading] = useState(false);
   const [importError, setImportError] = useState<string | null>(null);
   const [savedOpen, setSavedOpen] = useState(false);
-  const [savedTrips, setSavedTrips] = useState<SavedTrip[]>([]);
   const savedMenuRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    loadSavedTrips().then(setSavedTrips);
-  }, []);
 
   const { state, position, jumpToPhoto, jumpToTripTimeMs, dismissOverlay } = usePlayback(trip);
 
