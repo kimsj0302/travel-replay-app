@@ -266,7 +266,7 @@ export async function matchOnlineWithLocal(
     onProgress?.(done, total);
   };
 
-  const proxies = [corsProxy, ...FALLBACK_PROXIES.filter((p) => p !== corsProxy)];
+  const proxies = [corsProxy, ...FALLBACK_PROXIES.filter((p) => p.url !== corsProxy).map((p) => p.url)];
 
   const onlineHashes = await mapConcurrent(
     onlineImageUrls,

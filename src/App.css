@@ -1,142 +1,7 @@
-/* ===== Import Page ===== */
-.import-page {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  min-height: 100vh;
-  padding: 40px 20px;
-  gap: 24px;
-}
-
-.app-header {
-  text-align: center;
-}
-
-.app-header h1 {
-  font-size: 2rem;
-  margin-bottom: 4px;
-}
-
-.app-header p {
-  color: var(--text-muted);
-}
-
-/* Folder Select */
-.folder-select {
-  width: 100%;
-  max-width: 480px;
-}
-
-.folder-select-card {
-  background: var(--surface);
-  border-radius: 12px;
-  padding: 32px;
-  text-align: center;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 12px;
-}
-
-.folder-icon {
-  color: var(--primary);
-}
-
-.folder-desc {
-  color: var(--text-muted);
-  font-size: 0.9rem;
-}
-
-.select-btn {
-  background: var(--primary);
-  color: #fff;
-  font-weight: 600;
-  font-size: 1rem;
-  padding: 12px 32px;
-  border-radius: var(--radius);
-}
-
-.select-btn:hover:not(:disabled) {
-  background: var(--primary-hover);
-}
-
-.folder-name {
-  color: var(--accent);
-  font-size: 0.9rem;
-}
-
-.status-msg {
-  color: var(--primary);
-  font-size: 0.95rem;
-}
-
+/* ===== Shared ===== */
 .error-msg {
   color: var(--danger);
   font-size: 0.95rem;
-}
-
-.instructions {
-  background: var(--surface);
-  border-radius: 12px;
-  padding: 24px;
-  max-width: 480px;
-  width: 100%;
-}
-
-.instructions h3 {
-  margin-bottom: 12px;
-}
-
-.instructions ol {
-  padding-left: 20px;
-  color: var(--text-muted);
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-/* Import page - divider + JSON section */
-.import-divider {
-  display: flex;
-  align-items: center;
-  width: 100%;
-  max-width: 480px;
-  gap: 16px;
-  color: var(--text-muted);
-  font-size: 0.85rem;
-}
-
-.import-divider::before,
-.import-divider::after {
-  content: '';
-  flex: 1;
-  height: 1px;
-  background: rgba(255, 255, 255, 0.1);
-}
-
-.import-json-section {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 8px;
-  width: 100%;
-  max-width: 480px;
-}
-
-.extract-link-btn {
-  margin-top: 16px;
-  padding: 10px 20px;
-  background: rgba(249, 115, 22, 0.15);
-  color: var(--accent);
-  border: 1px solid rgba(249, 115, 22, 0.4);
-  border-radius: var(--radius);
-  font-size: 0.9rem;
-  cursor: pointer;
-  transition: background 0.15s;
-}
-
-.extract-link-btn:hover {
-  background: rgba(249, 115, 22, 0.3);
 }
 
 /* ===== Replay Page ===== */
@@ -166,9 +31,107 @@
   font-size: 0.9rem;
 }
 
-.back-btn {
-  padding: 6px 12px;
+.replay-title {
+  white-space: nowrap;
+}
+
+.header-action-btn {
+  padding: 6px 14px;
   font-size: 0.85rem;
+  background: rgba(59, 130, 246, 0.15);
+  color: #93c5fd;
+  border: 1px solid rgba(59, 130, 246, 0.35);
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background 0.15s;
+  white-space: nowrap;
+}
+
+.header-action-btn:hover:not(:disabled) {
+  background: rgba(59, 130, 246, 0.3);
+}
+
+.header-action-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.header-action-btn--accent {
+  background: rgba(249, 115, 22, 0.15);
+  color: var(--accent);
+  border: 1px solid rgba(249, 115, 22, 0.4);
+}
+
+.header-action-btn--accent:hover {
+  background: rgba(249, 115, 22, 0.3);
+}
+
+.dropdown-arrow {
+  font-size: 0.6em;
+  margin-left: 4px;
+}
+
+/* Saved trip dropdown */
+.saved-trip-menu {
+  position: relative;
+}
+
+.saved-trip-dropdown {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  min-width: 220px;
+  background: var(--surface);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 8px;
+  padding: 4px 0;
+  list-style: none;
+  z-index: 100;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+}
+
+.saved-trip-dropdown li button {
+  display: block;
+  width: 100%;
+  padding: 10px 16px;
+  text-align: left;
+  background: none;
+  border: none;
+  color: var(--text);
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: background 0.1s;
+}
+
+.saved-trip-dropdown li button:hover {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+/* Empty state (no trip loaded) */
+.empty-state {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  color: var(--text-muted);
+  text-align: center;
+  padding: 40px 20px;
+}
+
+.empty-state-icon {
+  opacity: 0.3;
+}
+
+.empty-state h2 {
+  color: var(--text);
+  font-size: 1.4rem;
+}
+
+.empty-state p {
+  max-width: 360px;
+  line-height: 1.5;
 }
 
 .replay-header-actions {
