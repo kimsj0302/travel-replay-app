@@ -3,13 +3,15 @@ import { findPositionAtTime } from './interpolation';
 import { buildSpeedSegments } from './speedZones';
 
 /**
- * GPX가 있으면 모든 사진 좌표를 촬영 시각 기준 트랙 위에 선형 보간.
- * EXIF 유무는 `gpsSource`로만 구분(핀 색 등).
+ * EXIF GPS가 없는 사진(`gpsSource === 'interpolated'`)만 트랙 시각 기준으로 좌표를 보간.
+ * EXIF GPS가 있는 사진은 원래 좌표를 유지한다.
  */
 export function fillMissingGps(photos: TripPhoto[], track: TrackPoint[]): void {
   if (track.length === 0) return;
 
   for (const photo of photos) {
+    if (photo.gpsSource === 'exif') continue;
+
     const pos = findPositionAtTime(track, photo.time);
     if (pos) {
       photo.lat = pos.lat;

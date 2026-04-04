@@ -26,7 +26,6 @@ html, body, #root {
   background: var(--bg);
   color: var(--text);
   line-height: 1.5;
-  overflow: hidden;
 }
 
 button {

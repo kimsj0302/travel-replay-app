@@ -21,6 +21,8 @@ interface MapViewProps {
   onPhotoClick?: (photoIndex: number) => void;
   photoPanelOpen?: boolean;
   panToPhotoMarker?: { photoIndex: number; seq: number } | null;
+  /** GPS 타임라인 등: 좌표로 지도만 이동 */
+  panToCoordinates?: { lat: number; lon: number; seq: number } | null;
 }
 
 const TILE_URL = 'https://tile.openstreetmap.org/{z}/{x}/{y}.png';
@@ -40,6 +42,7 @@ export default function MapView({
   onPhotoClick,
   photoPanelOpen = false,
   panToPhotoMarker = null,
+  panToCoordinates = null,
 }: MapViewProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<maplibregl.Map | null>(null);
@@ -243,8 +246,7 @@ export default function MapView({
 
       registerPhotoPinImages(map)
         .then(addPhotoAndPositionLayers)
-        .catch((err) => {
-          console.error('Photo pin icons failed, using circle fallback', err);
+        .catch(() => {
           map.addSource('photo-groups', { type: 'geojson', data: emptyFC });
           map.addLayer({
             id: PHOTO_PIN_LAYER_ID,
@@ -362,13 +364,23 @@ export default function MapView({
     const map = mapRef.current;
     if (!map || !styleReady || !panToPhotoMarker) return;
     const p = photosSorted[panToPhotoMarker.photoIndex];
-    if (!p) return;
+    if (!p || p.gpsSource === 'none') return;
     map.easeTo({
       center: [p.lon, p.lat],
       duration: 450,
       essential: true,
     });
   }, [panToPhotoMarker, photosSorted, styleReady]);
+
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || !styleReady || !panToCoordinates) return;
+    map.easeTo({
+      center: [panToCoordinates.lon, panToCoordinates.lat],
+      duration: 450,
+      essential: true,
+    });
+  }, [panToCoordinates, styleReady]);
 
   return <div ref={containerRef} className="map-container" />;
 }

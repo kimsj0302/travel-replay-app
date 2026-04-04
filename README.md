@@ -1,4 +1,14 @@
-# React + TypeScript + Vite
+# Travel Replay (`travel-replay-app`)
+
+GPX 궤적 + `processed/` 사진 폴더로 여행을 다시 보는 로컬 웹앱입니다.
+
+- **샘플 GPX**: 저장소 루트 [`../test_data`](../test_data) (사진은 로컬에 두고 테스트)
+- 개발: `npm install` → `npm run dev`
+- 통합 테스트(`test_data` GPX + `processed` 90장, `distance_photo_to_nearest_gps_m` 가 전부 양수인지 검증): `npm run test`
+
+---
+
+## React + TypeScript + Vite
 
 This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
 

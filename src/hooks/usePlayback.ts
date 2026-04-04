@@ -50,7 +50,11 @@ export function usePlayback(trip: Trip | null) {
         activePhotoIndex: photoIndex,
       });
       if (trip.track.length === 0) {
-        setPosition({ lat: photo.lat, lon: photo.lon });
+        if (photo.gpsSource !== 'none') {
+          setPosition({ lat: photo.lat, lon: photo.lon });
+        } else {
+          setPosition(null);
+        }
       } else {
         updatePosition(tripTimeMs);
       }
@@ -61,6 +65,36 @@ export function usePlayback(trip: Trip | null) {
   const dismissOverlay = useCallback(() => {
     setState((prev) => ({ ...prev, activePhotoIndex: null }));
   }, []);
+
+  /** 타임라인 GPS 점 등: 해당 시각으로 이동 (사진 선택 해제) */
+  const jumpToTripTimeMs = useCallback(
+    (tripTimeMs: number) => {
+      if (!trip) return;
+      const start = trip.startTime.getTime();
+      const end = trip.endTime.getTime();
+      const clamped = Math.min(Math.max(tripTimeMs, start), end);
+
+      playbackTimeRef.current = tripTimeMsToPlaybackMs(
+        start,
+        end,
+        clamped,
+        totalDuration,
+      );
+
+      setState({
+        currentTime: new Date(clamped),
+        progress: totalDuration > 0 ? playbackTimeRef.current / totalDuration : 0,
+        activePhotoIndex: null,
+      });
+
+      if (trip.track.length === 0) {
+        setPosition(null);
+      } else {
+        updatePosition(clamped);
+      }
+    },
+    [trip, totalDuration, updatePosition],
+  );
 
   useEffect(() => {
     if (!trip) {
@@ -84,6 +118,7 @@ export function usePlayback(trip: Trip | null) {
     state,
     position,
     jumpToPhoto,
+    jumpToTripTimeMs,
     dismissOverlay,
   };
 }

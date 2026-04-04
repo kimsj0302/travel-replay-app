@@ -1,12 +1,13 @@
 import { memo, useRef } from 'react';
 import PhotoOverlay from './PhotoOverlay';
-import { usePhotoPaneWidth } from '../hooks/usePhotoPaneWidth';
+import { usePhotoPaneResize } from '../hooks/usePhotoPaneResize';
 import type { TripPhoto } from '../types';
 
 interface PhotoSplitPaneProps {
   photo: TripPhoto | null;
   activeIndex: number | null;
   totalPhotos: number;
+  direction: 'horizontal' | 'vertical';
   onPrev: () => void;
   onNext: () => void;
   onClose: () => void;
@@ -16,26 +17,30 @@ function PhotoSplitPane({
   photo,
   activeIndex,
   totalPhotos,
+  direction,
   onPrev,
   onNext,
   onClose,
 }: PhotoSplitPaneProps) {
   const asideRef = useRef<HTMLElement | null>(null);
-  const { widthPx, onResizeStart } = usePhotoPaneWidth(asideRef);
+  const { sizePx, onMouseDown, onTouchStart } = usePhotoPaneResize(asideRef, direction);
+
+  const isVert = direction === 'vertical';
 
   return (
     <>
       <div
-        className="replay-photo-resize-handle"
+        className={`replay-photo-resize-handle ${isVert ? 'replay-photo-resize-handle--horizontal' : ''}`}
         role="separator"
-        aria-orientation="vertical"
-        aria-label="사진 패널 너비 조절"
-        onMouseDown={onResizeStart}
+        aria-orientation={isVert ? 'horizontal' : 'vertical'}
+        aria-label="사진 패널 크기 조절"
+        onMouseDown={onMouseDown}
+        onTouchStart={onTouchStart}
       />
       <aside
         ref={asideRef}
         className="replay-photo-pane"
-        style={{ width: widthPx }}
+        style={isVert ? { height: sizePx } : { width: sizePx }}
         aria-label="사진 패널"
       >
         <PhotoOverlay

@@ -1,5 +1,6 @@
 import { useMemo } from 'react';
 import type { PlaybackState, Trip } from '../types';
+import { getPhotoName } from '../types';
 import { sortPhotosByTime } from '../utils/sortPhotos';
 import { sampleTrackVerticesForTimeline } from '../utils/timelineTrackSampling';
 
@@ -10,9 +11,16 @@ interface PlaybackControlsProps {
   state: PlaybackState;
   trip: Trip;
   onJumpToPhoto: (photoIndex: number) => void;
+  /** 타임라인 파란 GPS 점 클릭 시 해당 시각으로 이동 */
+  onJumpToTripTime: (tripTimeMs: number) => void;
 }
 
-export default function PlaybackControls({ state, trip, onJumpToPhoto }: PlaybackControlsProps) {
+export default function PlaybackControls({
+  state,
+  trip,
+  onJumpToPhoto,
+  onJumpToTripTime,
+}: PlaybackControlsProps) {
   const photosSorted = useMemo(() => sortPhotosByTime(trip.photos), [trip.photos]);
 
   const gpsTimelinePoints = useMemo(
@@ -73,7 +81,7 @@ export default function PlaybackControls({ state, trip, onJumpToPhoto }: Playbac
             const pct = end > start ? ((gTime - start) / (end - start)) * 100 : 0;
             return (
               <div
-                key={`${p.file.name}-${gTime}-${idx}`}
+                key={`${getPhotoName(p)}-${gTime}-${idx}`}
                 className="timeline-photo-mark"
                 style={{ left: `${pct}%` }}
               >
@@ -109,7 +117,18 @@ export default function PlaybackControls({ state, trip, onJumpToPhoto }: Playbac
                   className="timeline-gps-mark"
                   style={{ left: `${pct}%` }}
                 >
-                  <span className="timeline-gps-dot" title="GPS 포인트" />
+                  <button
+                    type="button"
+                    className="timeline-gps-dot-btn"
+                    title="이 GPS 시점으로 이동"
+                    aria-label={`궤적 시각 ${new Date(tMs).toLocaleString('ko-KR')}로 이동`}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onJumpToTripTime(tMs);
+                    }}
+                  >
+                    <span className="timeline-gps-dot" aria-hidden />
+                  </button>
                 </div>
               );
             })}

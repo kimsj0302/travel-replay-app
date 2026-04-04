@@ -1,5 +1,6 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import type { TripPhoto } from '../types';
+import { getPhotoSrc, getPhotoName } from '../types';
 
 interface PhotoOverlayProps {
   photo: TripPhoto | null;
@@ -18,6 +19,14 @@ export default function PhotoOverlay({
   onNext,
   onClose,
 }: PhotoOverlayProps) {
+  const [loading, setLoading] = useState(false);
+  const src = photo ? getPhotoSrc(photo) : '';
+
+  useEffect(() => {
+    if (!src) return;
+    setLoading(true);
+  }, [src]);
+
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
       if (!photo || activeIndex === null) return;
@@ -38,7 +47,7 @@ export default function PhotoOverlay({
     return (
       <div className="photo-panel photo-panel--empty">
         <div className="photo-panel-empty-msg">
-          <p>지도에서 사진 마커를 누르거나, 타임라인 틱으로 해당 시점에 들어가면 여기에 표시됩니다.</p>
+          <p>타임라인의 주황 틱을 클릭하면 해당 시점의 사진이 여기에 표시됩니다.</p>
         </div>
       </div>
     );
@@ -50,7 +59,21 @@ export default function PhotoOverlay({
   return (
     <div className="photo-panel">
       <div className="photo-panel-image-wrap">
-        <img src={photo.objectUrl} alt={photo.file.name} className="photo-panel-img" />
+        {loading && (
+          <div className="photo-panel-loading">
+            <div className="photo-panel-spinner" />
+            <span>로딩 중...</span>
+          </div>
+        )}
+        <img
+          src={src}
+          alt={getPhotoName(photo)}
+          className="photo-panel-img"
+          referrerPolicy="no-referrer"
+          onLoad={() => setLoading(false)}
+          onError={() => setLoading(false)}
+          style={loading ? { opacity: 0 } : undefined}
+        />
       </div>
 
       <div className="photo-panel-nav-row">

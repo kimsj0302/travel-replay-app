@@ -1,9 +1,11 @@
 import type { Trip } from '../types';
+import { getPhotoName } from '../types';
 
 interface TripJsonPhoto {
   time: string;
   lat: number;
   lon: number;
+  url?: string;
   filename: string;
 }
 
@@ -30,20 +32,26 @@ export function tripToJson(trip: Trip): TripJson {
       time: p.time.toISOString(),
       lat: p.lat,
       lon: p.lon,
-      filename: p.file.name,
+      ...(p.url ? { url: p.url } : {}),
+      filename: getPhotoName(p),
     })),
   };
 }
 
 export function tripToIndexEntry(trip: Trip): IndexEntry {
+  const geoPhotos = trip.photos.filter((p) => p.gpsSource !== 'none');
   const avgLat =
     trip.track.length > 0
       ? trip.track.reduce((s, p) => s + p.lat, 0) / trip.track.length
-      : trip.photos[0]?.lat ?? 0;
+      : geoPhotos.length > 0
+        ? geoPhotos.reduce((s, p) => s + p.lat, 0) / geoPhotos.length
+        : 0;
   const avgLon =
     trip.track.length > 0
       ? trip.track.reduce((s, p) => s + p.lon, 0) / trip.track.length
-      : trip.photos[0]?.lon ?? 0;
+      : geoPhotos.length > 0
+        ? geoPhotos.reduce((s, p) => s + p.lon, 0) / geoPhotos.length
+        : 0;
 
   return {
     id: trip.id,

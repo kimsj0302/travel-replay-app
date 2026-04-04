@@ -9,9 +9,26 @@ export interface TripPhoto {
   time: Date;
   lat: number;
   lon: number;
-  file: File;
-  objectUrl: string;
-  gpsSource: 'exif' | 'interpolated';
+  file?: File;
+  objectUrl?: string;
+  url?: string;
+  gpsSource: 'exif' | 'interpolated' | 'none';
+}
+
+export function getPhotoSrc(photo: TripPhoto): string {
+  return photo.objectUrl ?? photo.url ?? '';
+}
+
+export function getPhotoName(photo: TripPhoto): string {
+  if (photo.file) return photo.file.name;
+  if (photo.url) {
+    try {
+      return decodeURIComponent(new URL(photo.url).pathname.split('/').pop() ?? photo.url);
+    } catch {
+      return photo.url;
+    }
+  }
+  return 'unknown';
 }
 
 export interface SpeedSegment {
