@@ -4,6 +4,7 @@ import { fetchArticleData } from '../utils/urlImageExtractor';
 import { parseExifFromFile } from '../utils/exifParser';
 import { parseMultipleGpxFiles } from '../utils/gpxParser';
 import { downloadJson } from '../utils/exportJson';
+import { useI18n } from '../i18n/context';
 import type { TrackPoint } from '../types';
 
 const EXTRACT_DELAY_MS = 1500;
@@ -28,6 +29,7 @@ interface LocalPhoto {
 
 export default function OnlineImageExtractPage() {
   const navigate = useNavigate();
+  const { t, lang, toggleLang } = useI18n();
   const localInputRef = useRef<HTMLInputElement>(null);
   const gpxInputRef = useRef<HTMLInputElement>(null);
   const dragIdx = useRef<number | null>(null);
@@ -83,7 +85,7 @@ export default function OnlineImageExtractPage() {
         const { imageUrls, title: pageTitle } = await fetchArticleData(url);
 
         if (imageUrls.length === 0) {
-          failed.push(url + ' (이미지 없음)');
+          failed.push(url + ` (${t.noImages})`);
           continue;
         }
 
@@ -101,7 +103,7 @@ export default function OnlineImageExtractPage() {
 
         if (!firstTitle && pageTitle) firstTitle = pageTitle;
       } catch (err) {
-        const msg = err instanceof Error ? err.message : '추출 실패';
+        const msg = err instanceof Error ? err.message : t.extractFailed;
         failed.push(url + ` (${msg})`);
       }
     }
@@ -110,12 +112,12 @@ export default function OnlineImageExtractPage() {
     setArticleUrl('');
 
     const warnings: string[] = [];
-    if (skipped.length > 0) warnings.push(`중복 건너뜀: ${skipped.length}개`);
-    if (failed.length > 0) warnings.push(`실패: ${failed.join(', ')}`);
+    if (skipped.length > 0) warnings.push(t.skippedDuplicates(skipped.length));
+    if (failed.length > 0) warnings.push(t.failedItems(failed.join(', ')));
     if (warnings.length > 0) setError(warnings.join(' | '));
 
     setExtracting(false);
-  }, [articleUrl, title, sources]);
+  }, [articleUrl, title, sources, t]);
 
   const removeSource = useCallback((sourceUrl: string) => {
     setSources((prev) => prev.filter((s) => s.url !== sourceUrl));
@@ -141,15 +143,15 @@ export default function OnlineImageExtractPage() {
         photos.sort((a, b) => a.time.getTime() - b.time.getTime());
         setLocalPhotos(photos);
         if (photos.length === 0) {
-          setError('EXIF 시간이 있는 사진이 없습니다.');
+          setError(t.noExifTime);
         }
       } catch (err) {
-        setError(err instanceof Error ? err.message : 'EXIF 파싱 실패');
+        setError(err instanceof Error ? err.message : t.exifParseFailed);
       } finally {
         setParsingLocal(false);
       }
     },
-    [],
+    [t],
   );
 
   // ── GPX track ──────────────────────────────────────────────────────
@@ -164,15 +166,15 @@ export default function OnlineImageExtractPage() {
         const points = await parseMultipleGpxFiles(files);
         setTrackPoints(points);
         if (points.length === 0) {
-          setError('GPX에서 트랙 포인트를 찾을 수 없습니다.');
+          setError(t.noTrackPoints);
         }
       } catch (err) {
-        setError(err instanceof Error ? err.message : 'GPX 파싱 실패');
+        setError(err instanceof Error ? err.message : t.gpxParseFailed);
       } finally {
         setParsingGpx(false);
       }
     },
-    [],
+    [t],
   );
 
   // ── Apply local times by position ─────────────────────────────────
@@ -250,14 +252,14 @@ export default function OnlineImageExtractPage() {
   }, []);
 
   const handleAddManual = useCallback(() => {
-    const url = prompt('이미지 URL을 입력하세요:');
+    const url = prompt(t.enterImageUrl);
     if (url?.trim()) {
       setImages((prev) => [
         ...prev,
-        { url: url.trim(), time: '', sourceUrl: '(수동)' },
+        { url: url.trim(), time: '', sourceUrl: t.manualSource },
       ]);
     }
-  }, []);
+  }, [t]);
 
   const buildJsonData = useCallback(() => {
     const validPhotos = images
@@ -290,12 +292,12 @@ export default function OnlineImageExtractPage() {
   const handleDownload = useCallback(() => {
     const data = buildJsonData();
     if (data.photos.length === 0) {
-      setError('시간이 설정된 이미지가 없습니다.');
+      setError(t.noTimedImages);
       return;
     }
     const filename = `${data.title.replace(/[^a-zA-Z0-9가-힣]/g, '_')}-trip.json`;
     downloadJson(data, filename);
-  }, [buildJsonData]);
+  }, [buildJsonData, t]);
 
   const jsonPreview = showPreview ? JSON.stringify(buildJsonData(), null, 2) : '';
   const validCount = images.filter((img) => img.time).length;
@@ -304,26 +306,29 @@ export default function OnlineImageExtractPage() {
   return (
     <div className="extract-page">
       <header className="app-header">
-        <h1>온라인 이미지 → JSON</h1>
-        <p>게시글에서 이미지를 추출하고, 로컬 사진 순서대로 시간을 적용하세요</p>
+        <h1>{t.extractPageTitle}</h1>
+        <p>{t.extractPageDesc}</p>
+        <button className="lang-toggle-btn extract-lang-btn" onClick={toggleLang}>
+          {lang === 'ko' ? 'EN' : '한국어'}
+        </button>
       </header>
 
       {/* Metadata */}
       <section className="extract-section">
-        <h3>여행 정보</h3>
+        <h3>{t.tripInfo}</h3>
         <div className="extract-field-row">
           <label className="extract-label">
-            제목
+            {t.titleLabel}
             <input
               type="text"
               value={title}
               onChange={(e) => setTitle(e.target.value)}
-              placeholder="여행 제목"
+              placeholder={t.titlePlaceholder}
               className="extract-input"
             />
           </label>
           <label className="extract-label">
-            날짜
+            {t.dateLabel}
             <input
               type="date"
               value={date}
@@ -336,14 +341,12 @@ export default function OnlineImageExtractPage() {
 
       {/* URL Extract */}
       <section className="extract-section">
-        <h3>1. 게시글에서 이미지 추출</h3>
+        <h3>{t.step1Title}</h3>
         <div className="extract-url-row">
           <textarea
             value={articleUrl}
             onChange={(e) => setArticleUrl(e.target.value)}
-            placeholder={
-              'URL을 입력하세요 (여러 개는 줄바꿈/공백/쉼표로 구분)\nhttps://example.tistory.com/20\nhttps://example.tistory.com/21'
-            }
+            placeholder={t.urlPlaceholder}
             className="extract-input extract-input--wide extract-textarea"
             rows={3}
           />
@@ -353,13 +356,13 @@ export default function OnlineImageExtractPage() {
               disabled={extracting || !articleUrl.trim()}
               className="extract-btn"
             >
-              {extracting ? '추출 중...' : '추출'}
+              {extracting ? t.extracting : t.extract}
             </button>
             <button
               onClick={handleAddManual}
               className="extract-btn extract-btn--secondary"
             >
-              + 수동
+              {t.addManual}
             </button>
           </div>
         </div>
@@ -371,11 +374,11 @@ export default function OnlineImageExtractPage() {
                 <span className="extract-source-title" title={src.url}>
                   {src.title || truncateUrl(src.url, 45)}
                 </span>
-                <span className="extract-source-count">{src.imageCount}장</span>
+                <span className="extract-source-count">{t.imageCountUnit(src.imageCount)}</span>
                 <button
                   onClick={() => removeSource(src.url)}
                   className="extract-source-remove"
-                  title="이 게시글의 이미지 모두 제거"
+                  title={t.removeSourceTitle}
                 >
                   ×
                 </button>
@@ -387,10 +390,9 @@ export default function OnlineImageExtractPage() {
 
       {/* Local Photo Load + Apply */}
       <section className="extract-section">
-        <h3>2. 로컬 사진으로 시간 적용</h3>
+        <h3>{t.step2Title}</h3>
         <p className="extract-hint">
-          로컬 사진을 불러오면 EXIF 시간순으로 정렬됩니다.
-          온라인 이미지 순서를 맞춘 뒤 &quot;시간 적용&quot;을 누르세요.
+          {t.step2Hint}
         </p>
         <div className="extract-local-row">
           <button
@@ -398,7 +400,7 @@ export default function OnlineImageExtractPage() {
             disabled={parsingLocal}
             className="extract-btn"
           >
-            {parsingLocal ? 'EXIF 분석 중...' : '로컬 사진 선택'}
+            {parsingLocal ? t.parsingExif : t.selectLocalPhotos}
           </button>
           <input
             ref={localInputRef}
@@ -410,7 +412,7 @@ export default function OnlineImageExtractPage() {
           />
           {localPhotos.length > 0 && (
             <span className="extract-local-count">
-              {localPhotos.length}장 로드됨
+              {t.localLoaded(localPhotos.length)}
             </span>
           )}
           <button
@@ -418,16 +420,16 @@ export default function OnlineImageExtractPage() {
             disabled={localPhotos.length === 0 || images.length === 0}
             className="extract-btn extract-btn--accent"
           >
-            시간 적용 ({pairCount}쌍)
+            {t.applyTimes(pairCount)}
           </button>
         </div>
       </section>
 
       {/* GPX Track */}
       <section className="extract-section">
-        <h3>3. GPX 트랙 데이터 (선택)</h3>
+        <h3>{t.step3Title}</h3>
         <p className="extract-hint">
-          GPX 파일을 추가하면 지도 위에 이동 경로가 표시되고, 사진에 GPS 좌표가 자동 보간됩니다.
+          {t.step3Hint}
         </p>
         <div className="extract-local-row">
           <button
@@ -435,7 +437,7 @@ export default function OnlineImageExtractPage() {
             disabled={parsingGpx}
             className="extract-btn"
           >
-            {parsingGpx ? 'GPX 파싱 중...' : 'GPX 파일 선택'}
+            {parsingGpx ? t.parsingGpx : t.selectGpxFile}
           </button>
           <input
             ref={gpxInputRef}
@@ -447,7 +449,7 @@ export default function OnlineImageExtractPage() {
           />
           {trackPoints.length > 0 && (
             <span className="extract-local-count">
-              {trackPoints.length.toLocaleString()}개 트랙포인트 로드됨
+              {t.trackPointsLoaded(trackPoints.length.toLocaleString())}
             </span>
           )}
           {trackPoints.length > 0 && (
@@ -455,7 +457,7 @@ export default function OnlineImageExtractPage() {
               onClick={() => setTrackPoints([])}
               className="extract-btn extract-btn--secondary"
             >
-              트랙 제거
+              {t.removeTrack}
             </button>
           )}
         </div>
@@ -466,12 +468,8 @@ export default function OnlineImageExtractPage() {
       {/* Image Pair List */}
       {images.length > 0 && (
         <section className="extract-section">
-          <h3>
-            이미지 매칭 ({images.length}개, 시간 설정됨: {validCount}개)
-          </h3>
-          <p className="extract-hint">
-            드래그하거나 ▲▼ 버튼으로 온라인 이미지 순서를 조절하세요
-          </p>
+          <h3>{t.imageMatching(images.length, validCount)}</h3>
+          <p className="extract-hint">{t.dragHint}</p>
           <div className="extract-image-list">
             {images.map((img, idx) => {
               const lp = localPhotos[idx];
@@ -485,14 +483,13 @@ export default function OnlineImageExtractPage() {
                   onDragOver={(e) => e.preventDefault()}
                   onDragEnd={handleDragEnd}
                 >
-                  {/* Reorder controls */}
                   <div className="extract-pair-order">
                     <span className="extract-pair-idx">{idx + 1}</span>
                     <button
                       className="extract-move-btn"
                       onClick={() => moveImage(idx, -1)}
                       disabled={idx === 0}
-                      title="위로"
+                      title={t.moveUp}
                     >
                       ▲
                     </button>
@@ -500,27 +497,24 @@ export default function OnlineImageExtractPage() {
                       className="extract-move-btn"
                       onClick={() => moveImage(idx, 1)}
                       disabled={idx === images.length - 1}
-                      title="아래로"
+                      title={t.moveDown}
                     >
                       ▼
                     </button>
                   </div>
 
-                  {/* Online image */}
                   <div className="extract-pair-online">
                     <img
                       src={img.url}
-                      alt={`온라인 ${idx + 1}`}
+                      alt={t.onlineAlt(idx + 1)}
                       className="extract-pair-thumb"
                       loading="lazy"
                       referrerPolicy="no-referrer"
                     />
                   </div>
 
-                  {/* Arrow */}
                   <span className="extract-pair-arrow">←</span>
 
-                  {/* Local photo */}
                   <div className="extract-pair-local">
                     {lp ? (
                       <>
@@ -539,7 +533,6 @@ export default function OnlineImageExtractPage() {
                     )}
                   </div>
 
-                  {/* Time input */}
                   <input
                     type="datetime-local"
                     value={img.time}
@@ -548,11 +541,10 @@ export default function OnlineImageExtractPage() {
                     step="1"
                   />
 
-                  {/* Remove */}
                   <button
                     onClick={() => removeImage(idx)}
                     className="extract-remove-btn"
-                    title="삭제"
+                    title={t.deleteImage}
                   >
                     ×
                   </button>
@@ -570,26 +562,26 @@ export default function OnlineImageExtractPage() {
           className="extract-btn extract-btn--secondary"
           disabled={validCount === 0}
         >
-          {showPreview ? 'JSON 닫기' : 'JSON 미리보기'}
+          {showPreview ? t.closeJson : t.previewJson}
         </button>
         <button
           onClick={handleDownload}
           className="extract-btn extract-btn--accent"
           disabled={validCount === 0}
         >
-          JSON 다운로드 ({validCount}장)
+          {t.downloadJson(validCount)}
         </button>
         <button
           onClick={() => navigate('/')}
           className="extract-btn extract-btn--secondary"
         >
-          ← 메인으로
+          {t.backToMain}
         </button>
       </section>
 
       {showPreview && (
         <section className="extract-section">
-          <h3>JSON 미리보기</h3>
+          <h3>{t.jsonPreviewTitle}</h3>
           <pre className="extract-json-preview">{jsonPreview}</pre>
         </section>
       )}

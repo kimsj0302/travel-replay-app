@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import type { TripPhoto } from '../types';
 import { getPhotoSrc, getPhotoName } from '../types';
+import { useI18n } from '../i18n/context';
 
 interface PhotoOverlayProps {
   photo: TripPhoto | null;
@@ -19,6 +20,7 @@ export default function PhotoOverlay({
   onNext,
   onClose,
 }: PhotoOverlayProps) {
+  const { t } = useI18n();
   const [loading, setLoading] = useState(false);
   const src = photo ? getPhotoSrc(photo) : '';
 
@@ -47,7 +49,7 @@ export default function PhotoOverlay({
     return (
       <div className="photo-panel photo-panel--empty">
         <div className="photo-panel-empty-msg">
-          <p>타임라인의 주황 틱을 클릭하면 해당 시점의 사진이 여기에 표시됩니다.</p>
+          <p>{t.photoEmptyHint}</p>
         </div>
       </div>
     );
@@ -62,7 +64,7 @@ export default function PhotoOverlay({
         {loading && (
           <div className="photo-panel-loading">
             <div className="photo-panel-spinner" />
-            <span>로딩 중...</span>
+            <span>{t.loadingPhoto}</span>
           </div>
         )}
         <img
@@ -82,9 +84,9 @@ export default function PhotoOverlay({
           className="photo-panel-nav-btn"
           onClick={onPrev}
           disabled={!canPrev}
-          title="이전 시각의 사진"
+          title={t.prevPhotoTitle}
         >
-          이전
+          {t.prev}
         </button>
         <span className="photo-panel-nav-count">
           {activeIndex + 1} / {totalPhotos}
@@ -94,9 +96,9 @@ export default function PhotoOverlay({
           className="photo-panel-nav-btn"
           onClick={onNext}
           disabled={!canNext}
-          title="다음 시각의 사진"
+          title={t.nextPhotoTitle}
         >
-          다음
+          {t.next}
         </button>
       </div>
     </div>

@@ -1,6 +1,7 @@
 import { memo, useRef } from 'react';
 import PhotoOverlay from './PhotoOverlay';
 import { usePhotoPaneResize } from '../hooks/usePhotoPaneResize';
+import { useI18n } from '../i18n/context';
 import type { TripPhoto } from '../types';
 
 interface PhotoSplitPaneProps {
@@ -22,6 +23,7 @@ function PhotoSplitPane({
   onNext,
   onClose,
 }: PhotoSplitPaneProps) {
+  const { t } = useI18n();
   const asideRef = useRef<HTMLElement | null>(null);
   const { sizePx, onMouseDown, onTouchStart } = usePhotoPaneResize(asideRef, direction);
 
@@ -33,7 +35,7 @@ function PhotoSplitPane({
         className={`replay-photo-resize-handle ${isVert ? 'replay-photo-resize-handle--horizontal' : ''}`}
         role="separator"
         aria-orientation={isVert ? 'horizontal' : 'vertical'}
-        aria-label="사진 패널 크기 조절"
+        aria-label={t.resizePanel}
         onMouseDown={onMouseDown}
         onTouchStart={onTouchStart}
       />
@@ -41,7 +43,7 @@ function PhotoSplitPane({
         ref={asideRef}
         className="replay-photo-pane"
         style={isVert ? { height: sizePx } : { width: sizePx }}
-        aria-label="사진 패널"
+        aria-label={t.photoPanel}
       >
         <PhotoOverlay
           photo={photo}

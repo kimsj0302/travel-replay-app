@@ -1,11 +1,16 @@
 import type { IControl, Map } from 'maplibre-gl';
+import { translations, type Lang } from '../i18n/translations';
 
-/**
- * MapLibre 기본 NavigationControl은 `zoom === getMaxZoom()` 으로 + 버튼을 끄는데,
- * 부동소수점·fitBounds로 줌이 최대에 가깝게 잡히면 +가 항상 비활성처럼 보이는 문제가 있다.
- * `>= max - ε`, `<= min + ε` 로 판별한다.
- */
 const ZOOM_BTN_EPS = 1e-3;
+const STORAGE_KEY = 'travel-replay-lang';
+
+function getLang(): Lang {
+  try {
+    const s = localStorage.getItem(STORAGE_KEY);
+    if (s === 'en' || s === 'ko') return s;
+  } catch { /* noop */ }
+  return 'ko';
+}
 
 export class FixedZoomControl implements IControl {
   _map!: Map;
@@ -15,6 +20,7 @@ export class FixedZoomControl implements IControl {
   _onZoom = (): void => this._updateButtons();
 
   onAdd(map: Map): HTMLElement {
+    const t = translations[getLang()];
     this._map = map;
     this._container = document.createElement('div');
     this._container.className = 'maplibregl-ctrl maplibregl-ctrl-group';
@@ -23,8 +29,8 @@ export class FixedZoomControl implements IControl {
     this._zoomIn = document.createElement('button');
     this._zoomIn.type = 'button';
     this._zoomIn.className = 'maplibregl-ctrl-zoom-in';
-    this._zoomIn.title = '확대';
-    this._zoomIn.setAttribute('aria-label', '확대');
+    this._zoomIn.title = t.zoomIn;
+    this._zoomIn.setAttribute('aria-label', t.zoomIn);
     const inIcon = document.createElement('span');
     inIcon.className = 'maplibregl-ctrl-icon';
     inIcon.setAttribute('aria-hidden', 'true');
@@ -36,8 +42,8 @@ export class FixedZoomControl implements IControl {
     this._zoomOut = document.createElement('button');
     this._zoomOut.type = 'button';
     this._zoomOut.className = 'maplibregl-ctrl-zoom-out';
-    this._zoomOut.title = '축소';
-    this._zoomOut.setAttribute('aria-label', '축소');
+    this._zoomOut.title = t.zoomOut;
+    this._zoomOut.setAttribute('aria-label', t.zoomOut);
     const outIcon = document.createElement('span');
     outIcon.className = 'maplibregl-ctrl-icon';
     outIcon.setAttribute('aria-hidden', 'true');

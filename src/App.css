@@ -134,6 +134,35 @@
   line-height: 1.5;
 }
 
+.webgl-banner {
+  padding: 8px 16px;
+  background: rgba(234, 179, 8, 0.15);
+  color: #fbbf24;
+  font-size: 0.85rem;
+  line-height: 1.5;
+  text-align: center;
+  flex-shrink: 0;
+}
+
+.lang-toggle-btn {
+  padding: 4px 10px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--text-muted);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.lang-toggle-btn:hover {
+  background: rgba(255, 255, 255, 0.15);
+  color: var(--text);
+}
+
 .replay-header-actions {
   display: flex;
   align-items: center;
@@ -637,6 +666,17 @@ button.timeline-gps-dot-btn:hover .timeline-gps-dot {
   min-height: 100vh;
   padding: 40px 20px 80px;
   gap: 20px;
+}
+
+.extract-page .app-header {
+  position: relative;
+  text-align: center;
+}
+
+.extract-lang-btn {
+  position: absolute;
+  top: 0;
+  right: -60px;
 }
 
 .extract-section {

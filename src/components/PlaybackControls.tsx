@@ -3,15 +3,14 @@ import type { PlaybackState, Trip } from '../types';
 import { getPhotoName } from '../types';
 import { sortPhotosByTime } from '../utils/sortPhotos';
 import { sampleTrackVerticesForTimeline } from '../utils/timelineTrackSampling';
+import { useI18n } from '../i18n/context';
 
-/** 타임라인에 너무 많은 DOM을 만들지 않도록 상한 — 시간축 균등 + 가까운 정점 */
 const MAX_GPS_TIMELINE_DOTS = 1200;
 
 interface PlaybackControlsProps {
   state: PlaybackState;
   trip: Trip;
   onJumpToPhoto: (photoIndex: number) => void;
-  /** 타임라인 파란 GPS 점 클릭 시 해당 시각으로 이동 */
   onJumpToTripTime: (tripTimeMs: number) => void;
 }
 
@@ -21,6 +20,7 @@ export default function PlaybackControls({
   onJumpToPhoto,
   onJumpToTripTime,
 }: PlaybackControlsProps) {
+  const { t } = useI18n();
   const photosSorted = useMemo(() => sortPhotosByTime(trip.photos), [trip.photos]);
 
   const gpsTimelinePoints = useMemo(
@@ -28,17 +28,16 @@ export default function PlaybackControls({
     [trip.track],
   );
 
-  /** 사진 틱·GPS 점과 동일: 실제 시각의 선형 위치 (지도 보간 시각과 일치) */
   const linearProgressPct = useMemo(() => {
     const start = trip.startTime.getTime();
     const end = trip.endTime.getTime();
     if (end <= start) return 0;
-    const t = state.currentTime.getTime();
-    const clamped = Math.min(Math.max(t, start), end);
+    const ct = state.currentTime.getTime();
+    const clamped = Math.min(Math.max(ct, start), end);
     return ((clamped - start) / (end - start)) * 100;
   }, [trip.startTime, trip.endTime, state.currentTime]);
 
-  const dateTimeStr = state.currentTime.toLocaleString('ko-KR', {
+  const dateTimeStr = state.currentTime.toLocaleString(t.dateLocale, {
     year: 'numeric',
     month: '2-digit',
     day: '2-digit',
@@ -51,19 +50,19 @@ export default function PlaybackControls({
   return (
     <div className="playback-controls">
       <div className="controls-top">
-        <span className="time-display" title="선택된 시각">
+        <span className="time-display" title={t.selectedTime}>
           {dateTimeStr}
         </span>
-        <div className="controls-top-stats" aria-label="사진·궤적 통계">
-          <span className="photo-count">{trip.photos.length}장</span>
+        <div className="controls-top-stats" aria-label={t.photoTrackStats}>
+          <span className="photo-count">{t.photoCount(trip.photos.length)}</span>
           <span className="controls-top-stats-sep" aria-hidden>
             ·
           </span>
           <span
             className="track-point-count"
-            title="GPX 궤적 좌표 개수(지도·보간에 사용)"
+            title={t.gpxCoordCount}
           >
-            GPS {trip.track.length.toLocaleString('ko-KR')}포인트
+            {t.gpsPoints(trip.track.length.toLocaleString(t.dateLocale))}
           </span>
         </div>
       </div>
@@ -88,8 +87,8 @@ export default function PlaybackControls({
                 <button
                   type="button"
                   className="timeline-photo-tick"
-                  title="이 시점으로 이동"
-                  aria-label={`사진 ${idx + 1} 해당 시점으로 이동`}
+                  title={t.jumpToThisTime}
+                  aria-label={t.jumpToPhoto(idx + 1)}
                   onClick={(e) => {
                     e.stopPropagation();
                     onJumpToPhoto(idx);
@@ -104,7 +103,7 @@ export default function PlaybackControls({
           <div
             className="timeline-gps-strip"
             role="presentation"
-            aria-label={`GPS 궤적 포인트 ${trip.track.length}개`}
+            aria-label={t.gpsTrackPoints(trip.track.length)}
           >
             {gpsTimelinePoints.map((pt, i) => {
               const tMs = pt.time.getTime();
@@ -120,8 +119,8 @@ export default function PlaybackControls({
                   <button
                     type="button"
                     className="timeline-gps-dot-btn"
-                    title="이 GPS 시점으로 이동"
-                    aria-label={`궤적 시각 ${new Date(tMs).toLocaleString('ko-KR')}로 이동`}
+                    title={t.jumpToGpsTime}
+                    aria-label={t.trackTime(new Date(tMs).toLocaleString(t.dateLocale))}
                     onClick={(e) => {
                       e.stopPropagation();
                       onJumpToTripTime(tMs);

@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import MapView from '../components/MapView';
+import MapView, { checkWebGLSupport } from '../components/MapView';
 import PlaybackControls from '../components/PlaybackControls';
 import PhotoSplitPane from '../components/PhotoSplitPane';
 import PhotoOverlay from '../components/PhotoOverlay';
@@ -9,8 +9,11 @@ import { useReplayMapPaneLayout } from '../hooks/useReplayMapPaneLayout';
 import { findPositionAtTime } from '../utils/interpolation';
 import { sortPhotosByTime } from '../utils/sortPhotos';
 import { loadTripFromJson } from '../utils/loadTripFromJson';
+import { useI18n } from '../i18n/context';
 import tripManifest from 'virtual:trip-manifest';
 import type { Trip } from '../types';
+
+const webglSupported = checkWebGLSupport();
 
 type LayoutMode = 'horizontal' | 'vertical';
 
@@ -29,7 +32,7 @@ const savedTrips: SavedTrip[] = tripManifest.map((entry) => {
     label: `${entry.date} - ${entry.title}`,
     load: async () => {
       const loader = tripLoaders[globKey];
-      if (!loader) throw new Error(`파일을 찾을 수 없습니다: ${entry.file}`);
+      if (!loader) throw new Error(`File not found: ${entry.file}`);
       const mod = await loader();
       return mod.default ?? mod;
     },
@@ -43,6 +46,7 @@ interface TripReplayPageProps {
 
 export default function TripReplayPage({ trip, onTripLoaded }: TripReplayPageProps) {
   const navigate = useNavigate();
+  const { lang, t, toggleLang } = useI18n();
   const jsonInputRef = useRef<HTMLInputElement>(null);
   const [importLoading, setImportLoading] = useState(false);
   const [importError, setImportError] = useState<string | null>(null);
@@ -58,6 +62,7 @@ export default function TripReplayPage({ trip, onTripLoaded }: TripReplayPagePro
 
   const hasGeoData = useMemo(
     () =>
+      webglSupported &&
       !!trip &&
       (trip.track.length > 0 || trip.photos.some((p) => p.gpsSource !== 'none')),
     [trip],
@@ -167,13 +172,13 @@ export default function TripReplayPage({ trip, onTripLoaded }: TripReplayPagePro
         const loaded = loadTripFromJson(json);
         onTripLoaded(loaded);
       } catch (err) {
-        setImportError(err instanceof Error ? err.message : 'JSON 파싱 실패');
+        setImportError(err instanceof Error ? err.message : t.jsonParseFailed);
       } finally {
         setImportLoading(false);
         if (jsonInputRef.current) jsonInputRef.current.value = '';
       }
     },
-    [onTripLoaded],
+    [onTripLoaded, t],
   );
 
   const handleSavedTripSelect = useCallback(
@@ -186,12 +191,18 @@ export default function TripReplayPage({ trip, onTripLoaded }: TripReplayPagePro
         const loaded = loadTripFromJson(json);
         onTripLoaded(loaded);
       } catch (err) {
-        setImportError(err instanceof Error ? err.message : '저장된 여행 로드 실패');
+        setImportError(err instanceof Error ? err.message : t.savedTripLoadFailed);
       } finally {
         setImportLoading(false);
       }
     },
-    [onTripLoaded],
+    [onTripLoaded, t],
+  );
+
+  const langToggle = (
+    <button className="lang-toggle-btn" onClick={toggleLang}>
+      {lang === 'ko' ? 'EN' : '한국어'}
+    </button>
   );
 
   const headerActions = (
@@ -203,7 +214,7 @@ export default function TripReplayPage({ trip, onTripLoaded }: TripReplayPagePro
             onClick={() => setSavedOpen((o) => !o)}
             disabled={importLoading}
           >
-            {importLoading ? '로드 중...' : '저장된 여행'}
+            {importLoading ? t.loading : t.savedTrips}
             <span className="dropdown-arrow">{savedOpen ? '▲' : '▼'}</span>
           </button>
           {savedOpen && (
@@ -222,14 +233,15 @@ export default function TripReplayPage({ trip, onTripLoaded }: TripReplayPagePro
         onClick={() => jsonInputRef.current?.click()}
         disabled={importLoading}
       >
-        JSON 파일 불러오기
+        {t.loadJsonFile}
       </button>
       <button
         className="header-action-btn header-action-btn--accent"
         onClick={() => navigate('/extract')}
       >
-        이미지 → JSON 변환
+        {t.imageToJson}
       </button>
+      {langToggle}
       <input
         ref={jsonInputRef}
         type="file"
@@ -254,8 +266,8 @@ export default function TripReplayPage({ trip, onTripLoaded }: TripReplayPagePro
               <path d="M12 8v4l3 3" />
             </svg>
           </div>
-          <h2>여행을 불러와 주세요</h2>
-          <p>저장된 여행을 선택하거나, JSON 파일을 직접 불러오세요.</p>
+          <h2>{t.loadTripPrompt}</h2>
+          <p>{t.loadTripDesc}</p>
           {importError && <p className="error-msg">{importError}</p>}
         </div>
       </div>
@@ -276,14 +288,20 @@ export default function TripReplayPage({ trip, onTripLoaded }: TripReplayPagePro
             type="button"
             className="layout-toggle-btn"
             onClick={toggleLayout}
-            title={layoutMode === 'horizontal' ? '상하 분할로 전환' : '좌우 분할로 전환'}
+            title={layoutMode === 'horizontal' ? t.switchToVertical : t.switchToHorizontal}
           >
-            {layoutMode === 'horizontal' ? '⬍ 상하' : '⬌ 좌우'}
+            {layoutMode === 'horizontal' ? t.layoutVertical : t.layoutHorizontal}
           </button>
         )}
       </header>
 
       {importError && <p className="error-msg" style={{ padding: '0 16px' }}>{importError}</p>}
+
+      {!webglSupported && (
+        <div className="webgl-banner">
+          {t.webglBanner}
+        </div>
+      )}
 
       <div className="replay-body">
         {hasGeoData ? (

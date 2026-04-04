@@ -12,7 +12,7 @@ interface TripJsonInput {
 export function loadTripFromJson(raw: unknown): Trip {
   const json = raw as TripJsonInput;
   if (!json || !Array.isArray(json.photos) || json.photos.length === 0) {
-    throw new Error('유효한 photos 배열이 없습니다.');
+    throw new Error('No valid photos array found / 유효한 photos 배열이 없습니다.');
   }
 
   const track: TrackPoint[] = [];
@@ -67,7 +67,7 @@ export function loadTripFromJson(raw: unknown): Trip {
   }
 
   if (photos.length === 0) {
-    throw new Error('유효한 시간을 가진 사진이 없습니다.');
+    throw new Error('No photos with valid time found / 유효한 시간을 가진 사진이 없습니다.');
   }
 
   photos.sort((a, b) => a.time.getTime() - b.time.getTime());
