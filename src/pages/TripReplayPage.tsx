@@ -18,25 +18,30 @@ type LayoutMode = 'horizontal' | 'vertical';
 
 interface SavedTrip {
   key: string;
+  date: string;
   label: string;
   load: () => Promise<unknown>;
 }
 
 const tripLoaders = import.meta.glob('/jsons/*.json') as Record<string, () => Promise<{ default: unknown }>>;
 
-const savedTrips: SavedTrip[] = tripManifest.map((entry) => {
-  const globKey = `/jsons/${entry.file}`;
-  return {
-    key: globKey,
-    label: `${entry.date} - ${entry.title}`,
-    load: async () => {
-      const loader = tripLoaders[globKey];
-      if (!loader) throw new Error(`File not found: ${entry.file}`);
-      const mod = await loader();
-      return mod.default ?? mod;
-    },
-  };
-});
+const savedTrips: SavedTrip[] = tripManifest
+  .slice()
+  .sort((a, b) => b.date.localeCompare(a.date, 'ko'))
+  .map((entry) => {
+    const globKey = `/jsons/${entry.file}`;
+    return {
+      key: globKey,
+      date: entry.date,
+      label: `${entry.date} - ${entry.title}`,
+      load: async () => {
+        const loader = tripLoaders[globKey];
+        if (!loader) throw new Error(`File not found: ${entry.file}`);
+        const mod = await loader();
+        return mod.default ?? mod;
+      },
+    };
+  });
 
 interface TripReplayPageProps {
   trip: Trip | null;
@@ -219,6 +224,12 @@ export default function TripReplayPage({ trip, onTripLoaded }: TripReplayPagePro
         onClick={() => navigate('/extract')}
       >
         {t.imageToJson}
+      </button>
+      <button
+        className="header-action-btn"
+        onClick={() => navigate('/gpx-editor')}
+      >
+        {t.gpxEditor}
       </button>
       {langToggle}
       <input

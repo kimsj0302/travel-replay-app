@@ -9,6 +9,7 @@ const ko = {
   fileNotFound: '파일을 찾을 수 없습니다',
   loadJsonFile: 'JSON 파일 불러오기',
   imageToJson: '이미지 → JSON 변환',
+  gpxEditor: 'GPX 편집',
   loadTripPrompt: '여행을 불러와 주세요',
   loadTripDesc: '저장된 여행을 선택하거나, JSON 파일을 직접 불러오세요.',
   switchToVertical: '상하 분할로 전환',
@@ -100,6 +101,21 @@ const ko = {
   backToMain: '← 메인으로',
   jsonPreviewTitle: 'JSON 미리보기',
 
+  // ── GpxEditorPage ──
+  gpxEditorPageTitle: 'GPX 편집기',
+  gpxEditorPageDesc: 'GPX 파일을 불러와 지도에서 영역 선택 후 포인트를 삭제하고 다시 저장하세요',
+  gpxSelectionModeOn: '영역 선택 켜짐',
+  gpxSelectionModeOff: '영역 선택 모드',
+  gpxDeleteSelected: (n: number) => `선택 포인트 삭제 (${n}개)`,
+  gpxClearSelection: '선택 해제',
+  gpxSaveFile: 'GPX 저장',
+  gpxSelectedPoints: (n: string) => `선택 ${n}개`,
+  gpxLoadedFile: (name: string) => `파일: ${name}`,
+  gpxSelectionHintIdle: '영역 선택 모드를 켠 뒤 지도에서 드래그해 GPX 포인트를 선택하세요.',
+  gpxSelectionHintActive: '지도에서 드래그하면 사각형 영역 안의 GPX 포인트가 선택됩니다.',
+  gpxEmptyTitle: 'GPX 파일을 불러와 주세요',
+  gpxEmptyDesc: 'GPX 트랙을 열면 지도에 포인트가 표시되고, 드래그 선택으로 삭제할 수 있습니다.',
+
   // ── loadTripFromJson ──
   noValidPhotos: '유효한 photos 배열이 없습니다.',
   noValidTime: '유효한 시간을 가진 사진이 없습니다.',
@@ -123,6 +139,7 @@ const en: Translations = {
   fileNotFound: 'File not found',
   loadJsonFile: 'Load JSON file',
   imageToJson: 'Image → JSON',
+  gpxEditor: 'GPX Editor',
   loadTripPrompt: 'Load a trip to get started',
   loadTripDesc: 'Select a saved trip or load a JSON file.',
   switchToVertical: 'Switch to top-bottom split',
@@ -213,6 +230,21 @@ const en: Translations = {
   downloadJson: (n: number) => `Download JSON (${n} photos)`,
   backToMain: '← Back to main',
   jsonPreviewTitle: 'JSON Preview',
+
+  // ── GpxEditorPage ──
+  gpxEditorPageTitle: 'GPX Editor',
+  gpxEditorPageDesc: 'Load a GPX file, select points on the map, delete them, and save the edited track',
+  gpxSelectionModeOn: 'Selection On',
+  gpxSelectionModeOff: 'Selection Mode',
+  gpxDeleteSelected: (n: number) => `Delete Selected (${n})`,
+  gpxClearSelection: 'Clear Selection',
+  gpxSaveFile: 'Save GPX',
+  gpxSelectedPoints: (n: string) => `${n} selected`,
+  gpxLoadedFile: (name: string) => `File: ${name}`,
+  gpxSelectionHintIdle: 'Turn on selection mode, then drag on the map to select GPX points.',
+  gpxSelectionHintActive: 'Drag on the map to select GPX points inside a bounding box.',
+  gpxEmptyTitle: 'Load a GPX file',
+  gpxEmptyDesc: 'Once a GPX track is loaded, you can select points by dragging and delete them.',
 
   // ── loadTripFromJson ──
   noValidPhotos: 'No valid photos array found.',
