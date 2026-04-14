@@ -10,9 +10,10 @@ import { sortPhotosByTime } from '../utils/sortPhotos';
 import { loadTripFromJson } from '../utils/loadTripFromJson';
 import { useI18n } from '../i18n/context';
 import tripManifest from 'virtual:trip-manifest';
-import type { Trip } from '../types';
+import { getPhotoSrc, type Trip } from '../types';
 
 const webglSupported = checkWebGLSupport();
+const PHOTO_PRELOAD_CONCURRENCY = 4;
 
 type LayoutMode = 'horizontal' | 'vertical';
 
@@ -42,6 +43,17 @@ const savedTrips: SavedTrip[] = tripManifest
       },
     };
   });
+
+function preloadImage(src: string): Promise<void> {
+  return new Promise((resolve) => {
+    const img = new Image();
+    img.referrerPolicy = 'no-referrer';
+    img.decoding = 'async';
+    img.onload = () => resolve();
+    img.onerror = () => resolve();
+    img.src = src;
+  });
+}
 
 interface TripReplayPageProps {
   trip: Trip | null;
@@ -90,6 +102,46 @@ export default function TripReplayPage({ trip, onTripLoaded }: TripReplayPagePro
     document.addEventListener('mousedown', handleClick);
     return () => document.removeEventListener('mousedown', handleClick);
   }, [savedOpen]);
+
+  useEffect(() => {
+    if (photosSorted.length === 0) return;
+
+    const sources = Array.from(
+      new Set(
+        photosSorted
+          .map((photo) => getPhotoSrc(photo))
+          .filter((src) => src.length > 0),
+      ),
+    );
+
+    if (sources.length === 0) return;
+
+    let cancelled = false;
+    let nextIndex = 0;
+
+    const worker = async () => {
+      while (!cancelled) {
+        const currentIndex = nextIndex;
+        nextIndex += 1;
+        const src = sources[currentIndex];
+        if (!src) break;
+        await preloadImage(src);
+      }
+    };
+
+    const start = window.setTimeout(() => {
+      const workers = Array.from(
+        { length: Math.min(PHOTO_PRELOAD_CONCURRENCY, sources.length) },
+        () => worker(),
+      );
+      void Promise.all(workers);
+    }, 0);
+
+    return () => {
+      cancelled = true;
+      window.clearTimeout(start);
+    };
+  }, [photosSorted]);
 
   const toggleLayout = useCallback(() => {
     setLayoutMode((m) => (m === 'horizontal' ? 'vertical' : 'horizontal'));
