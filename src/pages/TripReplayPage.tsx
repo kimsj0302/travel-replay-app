@@ -67,6 +67,9 @@ export default function TripReplayPage({ trip, onTripLoaded }: TripReplayPagePro
   const [importLoading, setImportLoading] = useState(false);
   const [importError, setImportError] = useState<string | null>(null);
   const [savedOpen, setSavedOpen] = useState(false);
+  const [preloadedPhotoCount, setPreloadedPhotoCount] = useState(0);
+  const [preloadTotalCount, setPreloadTotalCount] = useState(0);
+  const [showPreloadDetails, setShowPreloadDetails] = useState(false);
   const savedMenuRef = useRef<HTMLDivElement>(null);
 
   const { state, position, jumpToPhoto, dismissOverlay } = usePlayback(trip);
@@ -104,7 +107,11 @@ export default function TripReplayPage({ trip, onTripLoaded }: TripReplayPagePro
   }, [savedOpen]);
 
   useEffect(() => {
-    if (photosSorted.length === 0) return;
+    if (photosSorted.length === 0) {
+      setPreloadedPhotoCount(0);
+      setPreloadTotalCount(0);
+      return;
+    }
 
     const sources = Array.from(
       new Set(
@@ -113,6 +120,9 @@ export default function TripReplayPage({ trip, onTripLoaded }: TripReplayPagePro
           .filter((src) => src.length > 0),
       ),
     );
+
+    setPreloadedPhotoCount(0);
+    setPreloadTotalCount(sources.length);
 
     if (sources.length === 0) return;
 
@@ -126,6 +136,9 @@ export default function TripReplayPage({ trip, onTripLoaded }: TripReplayPagePro
         const src = sources[currentIndex];
         if (!src) break;
         await preloadImage(src);
+        if (!cancelled) {
+          setPreloadedPhotoCount((count) => count + 1);
+        }
       }
     };
 
@@ -318,11 +331,38 @@ export default function TripReplayPage({ trip, onTripLoaded }: TripReplayPagePro
 
   const activePhoto =
     state.activePhotoIndex !== null ? photosSorted[state.activePhotoIndex] ?? null : null;
+  const preloadProgress =
+    preloadTotalCount > 0 ? Math.round((preloadedPhotoCount / preloadTotalCount) * 100) : 0;
 
   return (
     <div className="replay-page">
       <header className="replay-header">
-        <h2>{trip.title}</h2>
+        <div className="replay-title-block">
+          <h2>{trip.title}</h2>
+          {preloadTotalCount > 0 && (
+            <button
+              type="button"
+              className={`replay-preload-toggle${showPreloadDetails ? ' replay-preload-toggle--open' : ''}`}
+              onClick={() => setShowPreloadDetails((prev) => !prev)}
+              title={t.photoPreloadToggleTitle}
+            >
+              <span
+                className="replay-preload-ring"
+                style={{
+                  background: `conic-gradient(var(--primary) ${preloadProgress}%, rgba(255, 255, 255, 0.12) ${preloadProgress}% 100%)`,
+                }}
+                aria-hidden="true"
+              >
+                <span className="replay-preload-ring-inner">{preloadProgress}</span>
+              </span>
+              {showPreloadDetails && (
+                <span className="replay-preload-status">
+                  {t.photoPreloadStatus(preloadedPhotoCount, preloadTotalCount)}
+                </span>
+              )}
+            </button>
+          )}
+        </div>
         {headerActions}
         {hasGeoData && (
           <button

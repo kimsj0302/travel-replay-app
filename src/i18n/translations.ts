@@ -16,6 +16,8 @@ const ko = {
   switchToHorizontal: '좌우 분할로 전환',
   layoutVertical: '⬍ 상하',
   layoutHorizontal: '⬌ 좌우',
+  photoPreloadStatus: (loaded: number, total: number) => `이미지 로드 ${loaded} / ${total}장`,
+  photoPreloadToggleTitle: '이미지 백그라운드 로딩 상세 보기',
   webglBanner:
     '지도를 표시하려면 브라우저의 하드웨어 가속을 활성화해 주세요.\nTo view the map, please enable hardware acceleration in your browser settings.',
 
@@ -146,6 +148,8 @@ const en: Translations = {
   switchToHorizontal: 'Switch to left-right split',
   layoutVertical: '⬍ T/B',
   layoutHorizontal: '⬌ L/R',
+  photoPreloadStatus: (loaded: number, total: number) => `Images loaded ${loaded} / ${total}`,
+  photoPreloadToggleTitle: 'Show image preload details',
   webglBanner:
     'To view the map, please enable hardware acceleration in your browser settings.',
 
