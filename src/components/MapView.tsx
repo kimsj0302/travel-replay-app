@@ -4,6 +4,7 @@ import 'maplibre-gl/dist/maplibre-gl.css';
 import { subscribeMapPaneSize } from '../stores/replayMapPaneStore';
 import { buildPhotoMarkerFeatures } from '../utils/photoMapFeatures';
 import {
+  PHOTO_PIN_ACTIVE_ID,
   PHOTO_PIN_EXIF_ID,
   PHOTO_PIN_INTERP_ID,
   registerPhotoPinImages,
@@ -11,12 +12,14 @@ import {
 import { FixedZoomControl } from '../map/fixedZoomControl';
 import type { TrackPoint, TripPhoto } from '../types';
 
-const PHOTO_PIN_LAYER_ID = 'photo-groups-pins';
+const PHOTO_PIN_BASE_LAYER_ID = 'photo-groups-pins';
+const PHOTO_PIN_ACTIVE_LAYER_ID = 'photo-groups-pins-active';
 
 interface MapViewProps {
   track: TrackPoint[];
   /** 시각 순 정렬 — 핀 인덱스 = 재생 인덱스 */
   photosSorted: TripPhoto[];
+  activePhotoIndex?: number | null;
   currentPosition: { lat: number; lon: number } | null;
   onPhotoClick?: (photoIndex: number) => void;
   photoPanelOpen?: boolean;
@@ -47,6 +50,7 @@ export function checkWebGLSupport(): boolean {
 export default function MapView({
   track,
   photosSorted,
+  activePhotoIndex = null,
   currentPosition,
   onPhotoClick,
   photoPanelOpen = false,
@@ -118,7 +122,7 @@ export default function MapView({
       } as const;
 
       const extendBoundsWithPhotoMarkers = (bounds: maplibregl.LngLatBounds) => {
-        for (const f of buildPhotoMarkerFeatures(photosSorted)) {
+        for (const f of buildPhotoMarkerFeatures(photosSorted, activePhotoIndex)) {
           const coordsPt = (f.geometry as GeoJSON.Point).coordinates;
           bounds.extend(coordsPt as [number, number]);
         }
@@ -175,7 +179,7 @@ export default function MapView({
         extendBoundsWithPhotoMarkers(bounds);
         map.fitBounds(bounds, fitPad);
       } else {
-        const markerFeatures = buildPhotoMarkerFeatures(photosSorted);
+        const markerFeatures = buildPhotoMarkerFeatures(photosSorted, activePhotoIndex);
         if (markerFeatures.length > 0) {
           const bounds = new maplibregl.LngLatBounds();
           for (const f of markerFeatures) {
@@ -187,21 +191,24 @@ export default function MapView({
       }
 
       const wirePhotoPinInteractions = () => {
-        map.on('click', PHOTO_PIN_LAYER_ID, (e) => {
-          const f = e.features?.[0];
-          if (!f || !f.properties) return;
-          const idx = f.properties['photoIndex'];
-          if (typeof idx === 'number') {
-            onPhotoClickRef.current?.(idx);
-          }
-        });
+        const layerIds = [PHOTO_PIN_BASE_LAYER_ID, PHOTO_PIN_ACTIVE_LAYER_ID] as const;
+        for (const layerId of layerIds) {
+          map.on('click', layerId, (e) => {
+            const f = e.features?.[0];
+            if (!f || !f.properties) return;
+            const idx = f.properties['photoIndex'];
+            if (typeof idx === 'number') {
+              onPhotoClickRef.current?.(idx);
+            }
+          });
 
-        map.on('mouseenter', PHOTO_PIN_LAYER_ID, () => {
-          map.getCanvas().style.cursor = 'pointer';
-        });
-        map.on('mouseleave', PHOTO_PIN_LAYER_ID, () => {
-          map.getCanvas().style.cursor = '';
-        });
+          map.on('mouseenter', layerId, () => {
+            map.getCanvas().style.cursor = 'pointer';
+          });
+          map.on('mouseleave', layerId, () => {
+            map.getCanvas().style.cursor = '';
+          });
+        }
       };
 
       const addPhotoAndPositionLayers = () => {
@@ -211,9 +218,10 @@ export default function MapView({
         });
 
         map.addLayer({
-          id: PHOTO_PIN_LAYER_ID,
+          id: PHOTO_PIN_BASE_LAYER_ID,
           type: 'symbol',
           source: 'photo-groups',
+          filter: ['!', ['boolean', ['get', 'isActive'], false]],
           layout: {
             'icon-image': [
               'match',
@@ -222,7 +230,49 @@ export default function MapView({
               PHOTO_PIN_INTERP_ID,
               PHOTO_PIN_EXIF_ID,
             ],
-            'icon-size': 0.88,
+            'icon-size': [
+              'interpolate',
+              ['linear'],
+              ['zoom'],
+              10,
+              0.42,
+              13,
+              0.52,
+              15,
+              0.64,
+              17,
+              0.78,
+              18,
+              0.88,
+            ],
+            'icon-anchor': 'bottom',
+            'icon-allow-overlap': true,
+            'icon-ignore-placement': true,
+          },
+        });
+
+        map.addLayer({
+          id: PHOTO_PIN_ACTIVE_LAYER_ID,
+          type: 'symbol',
+          source: 'photo-groups',
+          filter: ['boolean', ['get', 'isActive'], false],
+          layout: {
+            'icon-image': PHOTO_PIN_ACTIVE_ID,
+            'icon-size': [
+              'interpolate',
+              ['linear'],
+              ['zoom'],
+              10,
+              0.42,
+              13,
+              0.52,
+              15,
+              0.64,
+              17,
+              0.78,
+              18,
+              0.88,
+            ],
             'icon-anchor': 'bottom',
             'icon-allow-overlap': true,
             'icon-ignore-placement': true,
@@ -258,11 +308,26 @@ export default function MapView({
         .catch(() => {
           map.addSource('photo-groups', { type: 'geojson', data: emptyFC });
           map.addLayer({
-            id: PHOTO_PIN_LAYER_ID,
+            id: PHOTO_PIN_BASE_LAYER_ID,
             type: 'circle',
             source: 'photo-groups',
+            filter: ['!', ['boolean', ['get', 'isActive'], false]],
             paint: {
-              'circle-radius': 8,
+              'circle-radius': [
+                'interpolate',
+                ['linear'],
+                ['zoom'],
+                10,
+                3.5,
+                13,
+                4.5,
+                15,
+                5.5,
+                17,
+                6.5,
+                18,
+                7.5,
+              ],
               'circle-color': [
                 'match',
                 ['get', 'posSource'],
@@ -270,6 +335,32 @@ export default function MapView({
                 '#94a3b8',
                 '#f97316',
               ],
+              'circle-stroke-width': 2,
+              'circle-stroke-color': '#ffffff',
+            },
+          });
+          map.addLayer({
+            id: PHOTO_PIN_ACTIVE_LAYER_ID,
+            type: 'circle',
+            source: 'photo-groups',
+            filter: ['boolean', ['get', 'isActive'], false],
+            paint: {
+              'circle-radius': [
+                'interpolate',
+                ['linear'],
+                ['zoom'],
+                10,
+                3.5,
+                13,
+                4.5,
+                15,
+                5.5,
+                17,
+                6.5,
+                18,
+                7.5,
+              ],
+              'circle-color': '#ef4444',
               'circle-stroke-width': 2,
               'circle-stroke-color': '#ffffff',
             },
@@ -309,10 +400,10 @@ export default function MapView({
     const src = map.getSource('photo-groups') as maplibregl.GeoJSONSource | undefined;
     if (!src) return;
 
-    const features = buildPhotoMarkerFeatures(photosSorted);
+    const features = buildPhotoMarkerFeatures(photosSorted, activePhotoIndex);
 
     src.setData({ type: 'FeatureCollection', features });
-  }, [photosSorted, styleReady]);
+  }, [photosSorted, activePhotoIndex, styleReady]);
 
   useEffect(() => {
     const map = mapRef.current;
@@ -339,6 +430,7 @@ export default function MapView({
       ],
     });
   }, [currentPosition, styleReady]);
+
 
   useEffect(() => {
     const map = mapRef.current;

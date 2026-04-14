@@ -6,7 +6,6 @@ import PhotoSplitPane from '../components/PhotoSplitPane';
 import PhotoOverlay from '../components/PhotoOverlay';
 import { usePlayback } from '../hooks/usePlayback';
 import { useReplayMapPaneLayout } from '../hooks/useReplayMapPaneLayout';
-import { findPositionAtTime } from '../utils/interpolation';
 import { sortPhotosByTime } from '../utils/sortPhotos';
 import { loadTripFromJson } from '../utils/loadTripFromJson';
 import { useI18n } from '../i18n/context';
@@ -53,7 +52,7 @@ export default function TripReplayPage({ trip, onTripLoaded }: TripReplayPagePro
   const [savedOpen, setSavedOpen] = useState(false);
   const savedMenuRef = useRef<HTMLDivElement>(null);
 
-  const { state, position, jumpToPhoto, jumpToTripTimeMs, dismissOverlay } = usePlayback(trip);
+  const { state, position, jumpToPhoto, dismissOverlay } = usePlayback(trip);
 
   const photosSorted = useMemo(
     () => (trip ? sortPhotosByTime(trip.photos) : []),
@@ -109,26 +108,6 @@ export default function TripReplayPage({ trip, onTripLoaded }: TripReplayPagePro
       }));
     },
     [jumpToPhoto, hasGeoData],
-  );
-
-  const handleGpsTimelineJump = useCallback(
-    (tripTimeMs: number) => {
-      jumpToTripTimeMs(tripTimeMs);
-      setMarkerPan(null);
-      if (!trip || trip.track.length === 0) return;
-      const start = trip.startTime.getTime();
-      const end = trip.endTime.getTime();
-      const clamped = Math.min(Math.max(tripTimeMs, start), end);
-      const pos = findPositionAtTime(trip.track, new Date(clamped));
-      if (pos) {
-        setCoordPan((prev) => ({
-          lat: pos.lat,
-          lon: pos.lon,
-          seq: (prev?.seq ?? 0) + 1,
-        }));
-      }
-    },
-    [jumpToTripTimeMs, trip],
   );
 
   const panToPhotoIndex = useCallback(
@@ -281,7 +260,6 @@ export default function TripReplayPage({ trip, onTripLoaded }: TripReplayPagePro
     <div className="replay-page">
       <header className="replay-header">
         <h2>{trip.title}</h2>
-        <span className="trip-date">{trip.date}</span>
         {headerActions}
         {hasGeoData && (
           <button
@@ -310,6 +288,7 @@ export default function TripReplayPage({ trip, onTripLoaded }: TripReplayPagePro
               <MapView
                 track={trip.track}
                 photosSorted={photosSorted}
+                activePhotoIndex={state.activePhotoIndex}
                 currentPosition={position}
                 onPhotoClick={handlePhotoClick}
                 photoPanelOpen={state.activePhotoIndex !== null}
@@ -345,7 +324,6 @@ export default function TripReplayPage({ trip, onTripLoaded }: TripReplayPagePro
         state={state}
         trip={trip}
         onJumpToPhoto={handleTimelineJump}
-        onJumpToTripTime={handleGpsTimelineJump}
       />
     </div>
   );

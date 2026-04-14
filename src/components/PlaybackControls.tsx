@@ -11,14 +11,12 @@ interface PlaybackControlsProps {
   state: PlaybackState;
   trip: Trip;
   onJumpToPhoto: (photoIndex: number) => void;
-  onJumpToTripTime: (tripTimeMs: number) => void;
 }
 
 export default function PlaybackControls({
   state,
   trip,
   onJumpToPhoto,
-  onJumpToTripTime,
 }: PlaybackControlsProps) {
   const { t } = useI18n();
   const photosSorted = useMemo(() => sortPhotosByTime(trip.photos), [trip.photos]);
@@ -116,18 +114,11 @@ export default function PlaybackControls({
                   className="timeline-gps-mark"
                   style={{ left: `${pct}%` }}
                 >
-                  <button
-                    type="button"
-                    className="timeline-gps-dot-btn"
+                  <span
+                    className="timeline-gps-dot"
                     title={t.jumpToGpsTime}
-                    aria-label={t.trackTime(new Date(tMs).toLocaleString(t.dateLocale))}
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      onJumpToTripTime(tMs);
-                    }}
-                  >
-                    <span className="timeline-gps-dot" aria-hidden />
-                  </button>
+                    aria-hidden
+                  />
                 </div>
               );
             })}

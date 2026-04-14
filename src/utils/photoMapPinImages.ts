@@ -3,6 +3,7 @@ import type { Map as MapLibreMap } from 'maplibre-gl';
 /** 심볼 레이어에서 참조하는 이미지 ID */
 export const PHOTO_PIN_EXIF_ID = 'photo-pin-exif';
 export const PHOTO_PIN_INTERP_ID = 'photo-pin-interp';
+export const PHOTO_PIN_ACTIVE_ID = 'photo-pin-active';
 
 function pinSvg(fill: string): string {
   return `<svg xmlns="http://www.w3.org/2000/svg" width="36" height="48" viewBox="0 0 36 48">
@@ -17,7 +18,7 @@ function pinSvg(fill: string): string {
  */
 export function registerPhotoPinImages(map: MapLibreMap): Promise<void> {
   return new Promise((resolve, reject) => {
-    let pending = 2;
+    let pending = 3;
     const done = () => {
       pending -= 1;
       if (pending === 0) resolve();
@@ -35,5 +36,6 @@ export function registerPhotoPinImages(map: MapLibreMap): Promise<void> {
 
     load(PHOTO_PIN_EXIF_ID, pinSvg('#f97316'));
     load(PHOTO_PIN_INTERP_ID, pinSvg('#94a3b8'));
+    load(PHOTO_PIN_ACTIVE_ID, pinSvg('#ef4444'));
   });
 }
