@@ -11,18 +11,13 @@ import { loadTripFromJson } from '../utils/loadTripFromJson';
 import { useI18n } from '../i18n/context';
 import tripManifest from 'virtual:trip-manifest';
 import { getPhotoSrc, type Trip } from '../types';
+import type { SavedTripPickable } from '../types/savedTripPicker';
+import TripPickerPanel from '../components/TripPickerPanel';
 
 const webglSupported = checkWebGLSupport();
 const PHOTO_PRELOAD_CONCURRENCY = 4;
 
 type LayoutMode = 'horizontal' | 'vertical';
-
-interface SavedTrip {
-  key: string;
-  date: string;
-  label: string;
-  load: () => Promise<unknown>;
-}
 
 const tripLoaders = import.meta.glob('/jsons/*.json') as Record<string, () => Promise<{ default: unknown }>>;
 
@@ -62,6 +57,26 @@ function IconLayoutToVertical() {
   );
 }
 
+/** Return to main trip picker. */
+function IconHome() {
+  return (
+    <svg
+      width="20"
+      height="20"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.75"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden
+    >
+      <path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
+      <path d="M9 22V12h6v10" />
+    </svg>
+  );
+}
+
 /** Stacked layout control: switch to map | photos. */
 function IconLayoutToHorizontal() {
   return (
@@ -81,7 +96,7 @@ function IconLayoutToHorizontal() {
   );
 }
 
-const savedTrips: SavedTrip[] = tripManifest
+const savedTrips: SavedTripPickable[] = tripManifest
   .slice()
   .sort((a, b) => b.date.localeCompare(a.date, 'ko'))
   .map((entry) => {
@@ -89,7 +104,9 @@ const savedTrips: SavedTrip[] = tripManifest
     return {
       key: globKey,
       date: entry.date,
+      title: entry.title,
       label: `${entry.date} - ${entry.title}`,
+      previewCoords: entry.preview,
       load: async () => {
         const loader = tripLoaders[globKey];
         if (!loader) throw new Error(`File not found: ${entry.file}`);
@@ -113,15 +130,15 @@ function preloadImage(src: string): Promise<void> {
 interface TripReplayPageProps {
   trip: Trip | null;
   onTripLoaded: (trip: Trip) => void;
+  onTripClear: () => void;
 }
 
-export default function TripReplayPage({ trip, onTripLoaded }: TripReplayPageProps) {
+export default function TripReplayPage({ trip, onTripLoaded, onTripClear }: TripReplayPageProps) {
   const navigate = useNavigate();
   const { lang, t, toggleLang } = useI18n();
   const jsonInputRef = useRef<HTMLInputElement>(null);
   const [importLoading, setImportLoading] = useState(false);
   const [importError, setImportError] = useState<string | null>(null);
-  const [savedOpen, setSavedOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [preloadedPhotoCount, setPreloadedPhotoCount] = useState(0);
   const [preloadTotalCount, setPreloadTotalCount] = useState(0);
@@ -151,16 +168,15 @@ export default function TripReplayPage({ trip, onTripLoaded }: TripReplayPagePro
   const [coordPan, setCoordPan] = useState<{ lat: number; lon: number; seq: number } | null>(null);
 
   useEffect(() => {
-    if (!settingsOpen && !savedOpen) return;
+    if (!settingsOpen) return;
     const onKey = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
         setSettingsOpen(false);
-        setSavedOpen(false);
       }
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [settingsOpen, savedOpen]);
+  }, [settingsOpen]);
 
   useEffect(() => {
     if (photosSorted.length === 0) {
@@ -286,9 +302,8 @@ export default function TripReplayPage({ trip, onTripLoaded }: TripReplayPagePro
     [onTripLoaded, t],
   );
 
-  const handleSavedTripSelect = useCallback(
-    async (saved: SavedTrip) => {
-      setSavedOpen(false);
+  const confirmSavedTrip = useCallback(
+    async (saved: SavedTripPickable) => {
       setImportLoading(true);
       setImportError(null);
       try {
@@ -304,49 +319,10 @@ export default function TripReplayPage({ trip, onTripLoaded }: TripReplayPagePro
     [onTripLoaded, t],
   );
 
-  const savedTripsModal =
-    savedOpen &&
-    savedTrips.length > 0 && (
-      <div
-        className="replay-settings-overlay"
-        role="presentation"
-        onMouseDown={(e) => {
-          if (e.target === e.currentTarget) setSavedOpen(false);
-        }}
-      >
-        <div
-          className="replay-settings-window"
-          role="dialog"
-          aria-modal="true"
-          aria-labelledby="replay-saved-trips-title"
-          onMouseDown={(e) => e.stopPropagation()}
-        >
-          <div className="replay-settings-window-header">
-            <h2 id="replay-saved-trips-title">{t.savedTrips}</h2>
-            <button
-              type="button"
-              className="replay-settings-close"
-              onClick={() => setSavedOpen(false)}
-              aria-label={t.settingsCloseAria}
-            >
-              <IconModalClose />
-            </button>
-          </div>
-          <div className="replay-saved-trips-list">
-            {savedTrips.map((s) => (
-              <button
-                key={s.key}
-                type="button"
-                className="replay-saved-trip-item"
-                onClick={() => handleSavedTripSelect(s)}
-              >
-                {s.label}
-              </button>
-            ))}
-          </div>
-        </div>
-      </div>
-    );
+  const goHome = useCallback(() => {
+    setSettingsOpen(false);
+    onTripClear();
+  }, [onTripClear]);
 
   const settingsModal = settingsOpen && (
     <div
@@ -422,7 +398,6 @@ export default function TripReplayPage({ trip, onTripLoaded }: TripReplayPagePro
       type="button"
       className="replay-settings-gear-btn"
       onClick={() => {
-        setSavedOpen(false);
         setSettingsOpen((o) => !o);
       }}
       aria-expanded={settingsOpen}
@@ -436,29 +411,32 @@ export default function TripReplayPage({ trip, onTripLoaded }: TripReplayPagePro
     </button>
   );
 
-  const headerSaved = (
+  const headerJsonFileInput = (
+    <input
+      ref={jsonInputRef}
+      type="file"
+      accept=".json,application/json"
+      style={{ display: 'none' }}
+      onChange={handleJsonUpload}
+    />
+  );
+
+  const headerHomeButton = trip ? (
+    <button
+      type="button"
+      className="layout-toggle-btn"
+      onClick={goHome}
+      aria-label={t.navHomeAria}
+      title={t.navHomeAria}
+    >
+      <IconHome />
+    </button>
+  ) : null;
+
+  const headerActions = (
     <div className="replay-header-actions">
-      {savedTrips.length > 0 && (
-        <button
-          type="button"
-          className="header-action-btn"
-          onClick={() => {
-            setSettingsOpen(false);
-            setSavedOpen((o) => !o);
-          }}
-          disabled={importLoading}
-          aria-expanded={savedOpen}
-        >
-          {importLoading ? t.loading : t.savedTrips}
-        </button>
-      )}
-      <input
-        ref={jsonInputRef}
-        type="file"
-        accept=".json,application/json"
-        style={{ display: 'none' }}
-        onChange={handleJsonUpload}
-      />
+      {headerJsonFileInput}
+      {headerHomeButton}
     </div>
   );
 
@@ -484,21 +462,26 @@ export default function TripReplayPage({ trip, onTripLoaded }: TripReplayPagePro
       <div className="replay-page">
         <header className="replay-header">
           <h2 className="replay-title">Travel Replay</h2>
-          {headerSaved}
+          {headerActions}
           {headerTrailing}
         </header>
         {settingsModal}
-        {savedTripsModal}
-        <div className="empty-state">
-          <div className="empty-state-icon">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.2">
-              <circle cx="12" cy="12" r="10" />
-              <path d="M12 8v4l3 3" />
-            </svg>
-          </div>
-          <h2>{t.loadTripPrompt}</h2>
-          <p>{t.loadTripDesc}</p>
-          {importError && <p className="error-msg">{importError}</p>}
+        <div className="trip-picker-page">
+          <h2 className="trip-picker-page__title">{t.loadTripPrompt}</h2>
+          <p className="trip-picker-page__desc">{t.loadTripDesc}</p>
+          {savedTrips.length > 0 ? (
+            <TripPickerPanel
+              trips={savedTrips}
+              webglSupported={webglSupported}
+              t={t}
+              variant="main"
+              confirmDisabled={importLoading}
+              onConfirmLoad={confirmSavedTrip}
+            />
+          ) : (
+            <p className="trip-picker-page__empty">{t.loadTripDesc}</p>
+          )}
+          {importError && <p className="error-msg trip-picker-page__error">{importError}</p>}
         </div>
       </div>
     );
@@ -538,11 +521,10 @@ export default function TripReplayPage({ trip, onTripLoaded }: TripReplayPagePro
             </button>
           )}
         </div>
-        {headerSaved}
+        {headerActions}
         {headerTrailing}
       </header>
       {settingsModal}
-      {savedTripsModal}
 
       {importError && <p className="error-msg" style={{ padding: '0 16px' }}>{importError}</p>}
 

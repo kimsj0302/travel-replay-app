@@ -496,6 +496,258 @@
   padding: var(--space-4);
 }
 
+.replay-settings-window--wide {
+  max-width: min(920px, calc(100vw - var(--space-6)));
+}
+
+.replay-settings-window-body--flush {
+  padding: 0;
+  gap: 0;
+}
+
+.trip-picker-page {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  padding: var(--space-4);
+  gap: var(--space-3);
+  overflow: auto;
+}
+
+.trip-picker-page__title {
+  font-size: var(--text-title-sm);
+  font-weight: 600;
+  color: var(--text);
+}
+
+.trip-picker-page__desc {
+  font-size: var(--text-sm);
+  color: var(--text-muted);
+  line-height: 1.5;
+  max-width: 52rem;
+}
+
+.trip-picker-page__empty {
+  font-size: var(--text-sm);
+  color: var(--text-muted);
+}
+
+.trip-picker-page__error {
+  margin-top: var(--space-2);
+}
+
+.trip-picker-panel {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  min-height: 0;
+}
+
+.trip-picker-panel--main {
+  flex: 1;
+  min-height: 280px;
+}
+
+.trip-picker-panel--modal {
+  padding: var(--space-4);
+  max-height: min(72vh, 640px);
+}
+
+.trip-picker-panel__map-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  min-height: 0;
+  flex-shrink: 0;
+  position: relative;
+  z-index: 0;
+  isolation: isolate;
+}
+
+.saved-trips-routes-map {
+  width: 100%;
+  min-height: 280px;
+  height: 36vh;
+  max-height: 420px;
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  border: 1px solid var(--border-subtle);
+}
+
+.trip-picker-panel--modal .saved-trips-routes-map {
+  min-height: 220px;
+  height: 28vh;
+  max-height: 320px;
+}
+
+.trip-picker-panel__hint {
+  font-size: var(--text-sm);
+  color: var(--text-muted);
+  margin: 0;
+}
+
+.trip-picker-panel__hint--solo {
+  padding: 0 var(--space-4);
+}
+
+.trip-picker-list-section {
+  flex-shrink: 0;
+  position: relative;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.trip-picker-list-section__label {
+  font-size: var(--text-sm);
+  font-weight: 600;
+  color: var(--text-muted);
+}
+
+.trip-picker-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  max-height: min(40vh, 280px);
+  overflow-y: auto;
+}
+
+.trip-picker-panel--modal .trip-picker-list {
+  max-height: 200px;
+}
+
+.trip-picker-list__item {
+  margin: 0;
+}
+
+.trip-picker-list__btn {
+  display: block;
+  width: 100%;
+  margin: 0;
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-subtle);
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--text);
+  font: inherit;
+  font-size: var(--text-md);
+  font-weight: 500;
+  line-height: 1.4;
+  text-align: left;
+  cursor: pointer;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+  transition: background var(--duration-fast) var(--ease-out), border-color var(--duration-fast) var(--ease-out);
+}
+
+.trip-picker-list__btn:hover {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.trip-picker-list__btn:focus-visible {
+  outline: var(--focus-ring);
+  outline-offset: var(--focus-ring-offset);
+}
+
+.trip-picker-list__btn--selected {
+  border-color: var(--primary-soft-border);
+  background: var(--primary-soft-bg);
+  color: var(--primary-muted);
+}
+
+.trip-picker-list__label {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-subtle);
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--text);
+  cursor: pointer;
+  transition: background var(--duration-fast) var(--ease-out), border-color var(--duration-fast) var(--ease-out);
+}
+
+.trip-picker-list__label:hover {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.trip-picker-list__label--checked {
+  border-color: var(--primary-soft-border);
+  background: var(--primary-soft-bg);
+  color: var(--primary-muted);
+}
+
+.trip-picker-list__input {
+  margin-top: 0.2em;
+  flex-shrink: 0;
+  cursor: pointer;
+  accent-color: var(--primary);
+}
+
+.trip-picker-list__label:focus-within {
+  outline: var(--focus-ring);
+  outline-offset: var(--focus-ring-offset);
+}
+
+.trip-picker-list__text {
+  flex: 1;
+  min-width: 0;
+  font-size: var(--text-md);
+  font-weight: 500;
+  line-height: 1.4;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+.trip-picker-panel__footer {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  padding-top: var(--space-2);
+  border-top: 1px solid var(--border-muted);
+}
+
+.trip-picker-panel__summary {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.trip-picker-panel__summary-label {
+  font-size: var(--text-2xs);
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.trip-picker-panel__summary-value {
+  font-size: var(--text-md);
+  font-weight: 600;
+  color: var(--text);
+  line-height: 1.35;
+}
+
+.trip-picker-panel__summary-placeholder {
+  font-size: var(--text-sm);
+  color: var(--text-muted);
+}
+
+.trip-picker-panel__confirm {
+  flex-shrink: 0;
+  min-width: 140px;
+}
+
 .replay-settings-action-btn {
   width: 100%;
   padding: var(--space-3) var(--space-4);

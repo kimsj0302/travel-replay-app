@@ -11,7 +11,10 @@ export default function App() {
 
   return (
     <Routes>
-      <Route path="/" element={<TripReplayPage trip={trip} onTripLoaded={setTrip} />} />
+      <Route
+        path="/"
+        element={<TripReplayPage trip={trip} onTripLoaded={setTrip} onTripClear={() => setTrip(null)} />}
+      />
       <Route path="/extract" element={<OnlineImageExtractPage />} />
       <Route path="/gpx-editor" element={<GpxEditorPage />} />
     </Routes>
