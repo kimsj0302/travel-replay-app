@@ -26,6 +26,61 @@ interface SavedTrip {
 
 const tripLoaders = import.meta.glob('/jsons/*.json') as Record<string, () => Promise<{ default: unknown }>>;
 
+function IconModalClose() {
+  return (
+    <svg
+      width="20"
+      height="20"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      aria-hidden
+    >
+      <path d="M18 6 6 18M6 6l12 12" />
+    </svg>
+  );
+}
+
+/** Side-by-side layout control: switch to stacked (map / photos). */
+function IconLayoutToVertical() {
+  return (
+    <svg
+      width="20"
+      height="20"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.75"
+      strokeLinejoin="round"
+      aria-hidden
+    >
+      <rect x="3" y="4" width="18" height="7" rx="2" />
+      <rect x="3" y="13" width="18" height="7" rx="2" />
+    </svg>
+  );
+}
+
+/** Stacked layout control: switch to map | photos. */
+function IconLayoutToHorizontal() {
+  return (
+    <svg
+      width="20"
+      height="20"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.75"
+      strokeLinejoin="round"
+      aria-hidden
+    >
+      <rect x="4" y="3" width="7" height="18" rx="2" />
+      <rect x="13" y="3" width="7" height="18" rx="2" />
+    </svg>
+  );
+}
+
 const savedTrips: SavedTrip[] = tripManifest
   .slice()
   .sort((a, b) => b.date.localeCompare(a.date, 'ko'))
@@ -67,10 +122,10 @@ export default function TripReplayPage({ trip, onTripLoaded }: TripReplayPagePro
   const [importLoading, setImportLoading] = useState(false);
   const [importError, setImportError] = useState<string | null>(null);
   const [savedOpen, setSavedOpen] = useState(false);
+  const [settingsOpen, setSettingsOpen] = useState(false);
   const [preloadedPhotoCount, setPreloadedPhotoCount] = useState(0);
   const [preloadTotalCount, setPreloadTotalCount] = useState(0);
   const [showPreloadDetails, setShowPreloadDetails] = useState(false);
-  const savedMenuRef = useRef<HTMLDivElement>(null);
 
   const { state, position, jumpToPhoto, dismissOverlay } = usePlayback(trip);
 
@@ -96,15 +151,16 @@ export default function TripReplayPage({ trip, onTripLoaded }: TripReplayPagePro
   const [coordPan, setCoordPan] = useState<{ lat: number; lon: number; seq: number } | null>(null);
 
   useEffect(() => {
-    if (!savedOpen) return;
-    const handleClick = (e: MouseEvent) => {
-      if (savedMenuRef.current && !savedMenuRef.current.contains(e.target as Node)) {
+    if (!settingsOpen && !savedOpen) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        setSettingsOpen(false);
         setSavedOpen(false);
       }
     };
-    document.addEventListener('mousedown', handleClick);
-    return () => document.removeEventListener('mousedown', handleClick);
-  }, [savedOpen]);
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [settingsOpen, savedOpen]);
 
   useEffect(() => {
     if (photosSorted.length === 0) {
@@ -248,55 +304,154 @@ export default function TripReplayPage({ trip, onTripLoaded }: TripReplayPagePro
     [onTripLoaded, t],
   );
 
-  const langToggle = (
-    <button className="lang-toggle-btn" onClick={toggleLang}>
-      {lang === 'ko' ? 'EN' : '한국어'}
+  const savedTripsModal =
+    savedOpen &&
+    savedTrips.length > 0 && (
+      <div
+        className="replay-settings-overlay"
+        role="presentation"
+        onMouseDown={(e) => {
+          if (e.target === e.currentTarget) setSavedOpen(false);
+        }}
+      >
+        <div
+          className="replay-settings-window"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="replay-saved-trips-title"
+          onMouseDown={(e) => e.stopPropagation()}
+        >
+          <div className="replay-settings-window-header">
+            <h2 id="replay-saved-trips-title">{t.savedTrips}</h2>
+            <button
+              type="button"
+              className="replay-settings-close"
+              onClick={() => setSavedOpen(false)}
+              aria-label={t.settingsCloseAria}
+            >
+              <IconModalClose />
+            </button>
+          </div>
+          <div className="replay-saved-trips-list">
+            {savedTrips.map((s) => (
+              <button
+                key={s.key}
+                type="button"
+                className="replay-saved-trip-item"
+                onClick={() => handleSavedTripSelect(s)}
+              >
+                {s.label}
+              </button>
+            ))}
+          </div>
+        </div>
+      </div>
+    );
+
+  const settingsModal = settingsOpen && (
+    <div
+      className="replay-settings-overlay"
+      role="presentation"
+      onMouseDown={(e) => {
+        if (e.target === e.currentTarget) setSettingsOpen(false);
+      }}
+    >
+      <div
+        className="replay-settings-window"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="replay-settings-title"
+        onMouseDown={(e) => e.stopPropagation()}
+      >
+        <div className="replay-settings-window-header">
+          <h2 id="replay-settings-title">{t.settingsTitle}</h2>
+          <button
+            type="button"
+            className="replay-settings-close"
+            onClick={() => setSettingsOpen(false)}
+            aria-label={t.settingsCloseAria}
+          >
+            <IconModalClose />
+          </button>
+        </div>
+        <div className="replay-settings-window-body">
+          <button
+            type="button"
+            className="replay-settings-action-btn"
+            disabled={importLoading}
+            onClick={() => {
+              setSettingsOpen(false);
+              jsonInputRef.current?.click();
+            }}
+          >
+            {t.loadJsonFile}
+          </button>
+          <button
+            type="button"
+            className="replay-settings-action-btn replay-settings-action-btn--accent"
+            onClick={() => {
+              setSettingsOpen(false);
+              navigate('/extract');
+            }}
+          >
+            {t.imageToJson}
+          </button>
+          <button
+            type="button"
+            className="replay-settings-action-btn"
+            onClick={() => {
+              setSettingsOpen(false);
+              navigate('/gpx-editor');
+            }}
+          >
+            {t.gpxEditor}
+          </button>
+          <div className="replay-settings-lang">
+            <span className="replay-settings-lang-label">{t.languageLabel}</span>
+            <button type="button" className="replay-settings-action-btn replay-settings-action-btn--lang" onClick={toggleLang}>
+              {lang === 'ko' ? 'English' : '한국어'}
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+
+  const settingsGear = (
+    <button
+      type="button"
+      className="replay-settings-gear-btn"
+      onClick={() => {
+        setSavedOpen(false);
+        setSettingsOpen((o) => !o);
+      }}
+      aria-expanded={settingsOpen}
+      aria-label={t.settingsOpenAria}
+      title={t.settingsOpenAria}
+    >
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+        <circle cx="12" cy="12" r="3" />
+        <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V15a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1Z" />
+      </svg>
     </button>
   );
 
-  const headerActions = (
+  const headerSaved = (
     <div className="replay-header-actions">
       {savedTrips.length > 0 && (
-        <div className="saved-trip-menu" ref={savedMenuRef}>
-          <button
-            className="header-action-btn"
-            onClick={() => setSavedOpen((o) => !o)}
-            disabled={importLoading}
-          >
-            {importLoading ? t.loading : t.savedTrips}
-            <span className="dropdown-arrow">{savedOpen ? '▲' : '▼'}</span>
-          </button>
-          {savedOpen && (
-            <ul className="saved-trip-dropdown">
-              {savedTrips.map((s) => (
-                <li key={s.key}>
-                  <button onClick={() => handleSavedTripSelect(s)}>{s.label}</button>
-                </li>
-              ))}
-            </ul>
-          )}
-        </div>
+        <button
+          type="button"
+          className="header-action-btn"
+          onClick={() => {
+            setSettingsOpen(false);
+            setSavedOpen((o) => !o);
+          }}
+          disabled={importLoading}
+          aria-expanded={savedOpen}
+        >
+          {importLoading ? t.loading : t.savedTrips}
+        </button>
       )}
-      <button
-        className="header-action-btn"
-        onClick={() => jsonInputRef.current?.click()}
-        disabled={importLoading}
-      >
-        {t.loadJsonFile}
-      </button>
-      <button
-        className="header-action-btn header-action-btn--accent"
-        onClick={() => navigate('/extract')}
-      >
-        {t.imageToJson}
-      </button>
-      <button
-        className="header-action-btn"
-        onClick={() => navigate('/gpx-editor')}
-      >
-        {t.gpxEditor}
-      </button>
-      {langToggle}
       <input
         ref={jsonInputRef}
         type="file"
@@ -307,16 +462,36 @@ export default function TripReplayPage({ trip, onTripLoaded }: TripReplayPagePro
     </div>
   );
 
+  const headerTrailing = (
+    <div className="replay-header-trailing">
+      {trip && hasGeoData && (
+        <button
+          type="button"
+          className="layout-toggle-btn"
+          onClick={toggleLayout}
+          title={layoutMode === 'horizontal' ? t.switchToVertical : t.switchToHorizontal}
+          aria-label={layoutMode === 'horizontal' ? t.switchToVertical : t.switchToHorizontal}
+        >
+          {layoutMode === 'horizontal' ? <IconLayoutToVertical /> : <IconLayoutToHorizontal />}
+        </button>
+      )}
+      {settingsGear}
+    </div>
+  );
+
   if (!trip) {
     return (
       <div className="replay-page">
         <header className="replay-header">
           <h2 className="replay-title">Travel Replay</h2>
-          {headerActions}
+          {headerSaved}
+          {headerTrailing}
         </header>
+        {settingsModal}
+        {savedTripsModal}
         <div className="empty-state">
           <div className="empty-state-icon">
-            <svg width="80" height="80" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.2">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.2">
               <circle cx="12" cy="12" r="10" />
               <path d="M12 8v4l3 3" />
             </svg>
@@ -363,18 +538,11 @@ export default function TripReplayPage({ trip, onTripLoaded }: TripReplayPagePro
             </button>
           )}
         </div>
-        {headerActions}
-        {hasGeoData && (
-          <button
-            type="button"
-            className="layout-toggle-btn"
-            onClick={toggleLayout}
-            title={layoutMode === 'horizontal' ? t.switchToVertical : t.switchToHorizontal}
-          >
-            {layoutMode === 'horizontal' ? t.layoutVertical : t.layoutHorizontal}
-          </button>
-        )}
+        {headerSaved}
+        {headerTrailing}
       </header>
+      {settingsModal}
+      {savedTripsModal}
 
       {importError && <p className="error-msg" style={{ padding: '0 16px' }}>{importError}</p>}
 

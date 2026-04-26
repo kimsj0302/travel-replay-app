@@ -20,6 +20,10 @@ const ko = {
   photoPreloadToggleTitle: '이미지 백그라운드 로딩 상세 보기',
   webglBanner:
     '지도를 표시하려면 브라우저의 하드웨어 가속을 활성화해 주세요.\nTo view the map, please enable hardware acceleration in your browser settings.',
+  settingsTitle: '설정',
+  settingsOpenAria: '설정 메뉴 열기',
+  settingsCloseAria: '닫기',
+  languageLabel: '언어',
 
   // ── PlaybackControls ──
   selectedTime: '선택된 시각',
@@ -152,6 +156,10 @@ const en: Translations = {
   photoPreloadToggleTitle: 'Show image preload details',
   webglBanner:
     'To view the map, please enable hardware acceleration in your browser settings.',
+  settingsTitle: 'Settings',
+  settingsOpenAria: 'Open settings menu',
+  settingsCloseAria: 'Close',
+  languageLabel: 'Language',
 
   // ── PlaybackControls ──
   selectedTime: 'Selected time',
