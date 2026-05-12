@@ -57,25 +57,33 @@ export default function PhotoOverlay({
 
   const canPrev = activeIndex > 0;
   const canNext = activeIndex < totalPhotos - 1;
+  const sourceUrl = photo.sourceUrl?.trim() ?? '';
+  const hasSourceUrl = sourceUrl.startsWith('http://') || sourceUrl.startsWith('https://');
 
   return (
     <div className="photo-panel">
       <div className="photo-panel-image-wrap">
-        {loading && (
+        {src && loading && (
           <div className="photo-panel-loading">
             <div className="photo-panel-spinner" />
             <span>{t.loadingPhoto}</span>
           </div>
         )}
-        <img
-          src={src}
-          alt={getPhotoName(photo)}
-          className="photo-panel-img"
-          referrerPolicy="no-referrer"
-          onLoad={() => setLoading(false)}
-          onError={() => setLoading(false)}
-          style={loading ? { opacity: 0 } : undefined}
-        />
+        {src ? (
+          <img
+            src={src}
+            alt={getPhotoName(photo)}
+            className="photo-panel-img"
+            referrerPolicy="no-referrer"
+            onLoad={() => setLoading(false)}
+            onError={() => setLoading(false)}
+            style={loading ? { opacity: 0 } : undefined}
+          />
+        ) : (
+          <div className="photo-panel-empty-msg">
+            <p>{hasSourceUrl ? t.openSourcePostTitle : t.photoEmptyHint}</p>
+          </div>
+        )}
       </div>
 
       <div className="photo-panel-nav-row">
@@ -100,6 +108,22 @@ export default function PhotoOverlay({
         >
           {t.next}
         </button>
+        {hasSourceUrl && (
+          <a
+            href={sourceUrl}
+            target="_blank"
+            rel="noreferrer"
+            className="photo-panel-source-link"
+            title={t.openSourcePostTitle}
+            aria-label={t.openSourcePostTitle}
+          >
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+              <path d="M14 3h7v7" />
+              <path d="M10 14 21 3" />
+              <path d="M21 14v7H3V3h7" />
+            </svg>
+          </a>
+        )}
       </div>
     </div>
   );

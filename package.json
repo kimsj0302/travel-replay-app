@@ -8,6 +8,7 @@
     "build": "tsc -b && vite build",
     "lint": "eslint .",
     "preview": "vite preview",
+    "strip:photo-paths": "node ./scripts/strip-trip-photo-paths.mjs",
     "test": "vitest run",
     "test:watch": "vitest"
   },

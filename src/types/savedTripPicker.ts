@@ -1,3 +1,8 @@
+export interface SavedTripSourceLink {
+  url: string;
+  photoCount: number;
+}
+
 /** Saved trip entry for picker (manifest + JSON loader). */
 export interface SavedTripPickable {
   key: string;
@@ -6,5 +11,6 @@ export interface SavedTripPickable {
   label: string;
   /** Track preview `[lon, lat][]` only; null = no line on map */
   previewCoords: [number, number][] | null;
-  load: () => Promise<unknown>;
+  photoCoords: [number, number][];
+  sourcePosts: SavedTripSourceLink[];
 }

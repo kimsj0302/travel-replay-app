@@ -5,7 +5,7 @@ import { findPositionAtTime } from './interpolation';
 interface TripJsonInput {
   title?: string;
   date?: string;
-  photos?: { url: string; time: string; lat?: number; lon?: number }[];
+  photos?: { url?: string; time: string; sourceUrl?: string; lat?: number; lon?: number }[];
   track?: { time: string; lat: number; lon: number; ele?: number }[];
 }
 
@@ -46,6 +46,7 @@ export function loadTripFromJson(raw: unknown): Trip {
         lat: p.lat!,
         lon: p.lon!,
         url: p.url,
+        sourceUrl: p.sourceUrl,
         gpsSource: 'exif',
       });
     } else if (track.length > 0) {
@@ -56,13 +57,14 @@ export function loadTripFromJson(raw: unknown): Trip {
           lat: pos.lat,
           lon: pos.lon,
           url: p.url,
+          sourceUrl: p.sourceUrl,
           gpsSource: 'interpolated',
         });
       } else {
-        photos.push({ time, lat: 0, lon: 0, url: p.url, gpsSource: 'none' });
+        photos.push({ time, lat: 0, lon: 0, url: p.url, sourceUrl: p.sourceUrl, gpsSource: 'none' });
       }
     } else {
-      photos.push({ time, lat: 0, lon: 0, url: p.url, gpsSource: 'none' });
+      photos.push({ time, lat: 0, lon: 0, url: p.url, sourceUrl: p.sourceUrl, gpsSource: 'none' });
     }
   }
 

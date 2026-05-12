@@ -1,4 +1,4 @@
-import { forwardRef, useEffect, useImperativeHandle, useRef } from 'react';
+﻿import { forwardRef, useEffect, useImperativeHandle, useRef } from 'react';
 import maplibregl from 'maplibre-gl';
 import 'maplibre-gl/dist/maplibre-gl.css';
 import { FixedZoomControl } from '../map/fixedZoomControl';
@@ -15,30 +15,48 @@ const LINE_COLORS = ['#3b82f6', '#f97316', '#22c55e', '#a855f7', '#14b8a6', '#ea
 const SOURCE_ID = 'saved-trips-routes';
 const HIT_LAYER_ID = 'saved-trips-routes-hit';
 const LINE_LAYER_ID = 'saved-trips-routes-line';
+const PHOTO_SOURCE_ID = 'saved-trips-photo-points';
+const PHOTO_HALO_LAYER_ID = 'saved-trips-photo-points-halo';
+const PHOTO_LAYER_ID = 'saved-trips-photo-points';
+
+export interface SavedTripsMapViewportPadding {
+  top: number;
+  right: number;
+  bottom: number;
+  left: number;
+}
 
 export type SavedTripsRoutesMapHandle = {
-  /** 리스트 등 외부에서 선택 시 카메라만 맞춤 (부모 state와 별도) */
   frameToTrip: (tripKey: string) => void;
 };
 
-function buildFeatureCollection(
-  trips: SavedTripPickable[],
-): GeoJSON.FeatureCollection {
+const DEFAULT_PADDING: SavedTripsMapViewportPadding = {
+  top: 48,
+  right: 56,
+  bottom: 48,
+  left: 56,
+};
+const INITIAL_FIT_MAX_ZOOM = 13.6;
+const FOCUS_MAX_ZOOM = 14.9;
+const POINT_FOCUS_ZOOM = 14.4;
+const FOCUS_DURATION_MS = 650;
+const RESIZE_REFRAME_DEBOUNCE_MS = 120;
+
+function buildFeatureCollection(trips: SavedTripPickable[]): GeoJSON.FeatureCollection {
   const features: GeoJSON.Feature[] = [];
-  trips.forEach((trip, i) => {
+
+  trips.forEach((trip, index) => {
     const coords = trip.previewCoords;
     if (!coords || coords.length === 0) return;
-    let lineCoords = coords;
-    if (coords.length === 1) {
-      const p = coords[0]!;
-      lineCoords = [p, p];
-    }
+
+    const lineCoords = coords.length === 1 ? [coords[0]!, coords[0]!] : coords;
+
     features.push({
       type: 'Feature',
       id: trip.key,
       properties: {
         tripKey: trip.key,
-        color: LINE_COLORS[i % LINE_COLORS.length]!,
+        color: LINE_COLORS[index % LINE_COLORS.length]!,
       },
       geometry: {
         type: 'LineString',
@@ -46,11 +64,48 @@ function buildFeatureCollection(
       },
     });
   });
+
   return { type: 'FeatureCollection', features };
+}
+
+function buildSelectedPhotoFeatureCollection(
+  trips: SavedTripPickable[],
+  selectedKey: string | null,
+): GeoJSON.FeatureCollection {
+  if (!selectedKey) {
+    return { type: 'FeatureCollection', features: [] };
+  }
+
+  const trip = trips.find((item) => item.key === selectedKey);
+  if (!trip?.photoCoords.length) {
+    return { type: 'FeatureCollection', features: [] };
+  }
+
+  return {
+    type: 'FeatureCollection',
+    features: trip.photoCoords.map((coord, index) => ({
+      type: 'Feature',
+      id: `${trip.key}-photo-${index}`,
+      properties: {
+        tripKey: trip.key,
+      },
+      geometry: {
+        type: 'Point',
+        coordinates: coord,
+      },
+    })),
+  };
+}
+
+function toPaddingOptions(
+  padding: SavedTripsMapViewportPadding | undefined,
+): maplibregl.PaddingOptions {
+  return padding ?? DEFAULT_PADDING;
 }
 
 function applyLineSelection(map: maplibregl.Map, selectedKey: string | null) {
   if (!map.getLayer(LINE_LAYER_ID)) return;
+
   const selected = selectedKey ?? '';
   map.setPaintProperty(LINE_LAYER_ID, 'line-opacity', [
     'case',
@@ -66,16 +121,47 @@ function applyLineSelection(map: maplibregl.Map, selectedKey: string | null) {
   ]);
 }
 
-const FOCUS_PADDING = 64;
-const FOCUS_MAX_ZOOM = Math.max(4, Math.min(NATIVE_OSM_MAX_ZOOM, MAP_MAX_ZOOM - 1));
-const FOCUS_DURATION_MS = 650;
+function updateSelectedPhotoPoints(
+  map: maplibregl.Map,
+  trips: SavedTripPickable[],
+  selectedKey: string | null,
+) {
+  const source = map.getSource(PHOTO_SOURCE_ID) as maplibregl.GeoJSONSource | undefined;
+  if (!source) return;
+  source.setData(buildSelectedPhotoFeatureCollection(trips, selectedKey));
+}
+
+function fitAllTrips(
+  map: maplibregl.Map,
+  trips: SavedTripPickable[],
+  padding: SavedTripsMapViewportPadding | undefined,
+  duration = 0,
+) {
+  const bounds = new maplibregl.LngLatBounds();
+
+  for (const trip of trips) {
+    if (!trip.previewCoords?.length) continue;
+    for (const coord of trip.previewCoords) {
+      bounds.extend(coord as [number, number]);
+    }
+  }
+
+  if (bounds.isEmpty()) return;
+
+  map.fitBounds(bounds, {
+    padding: toPaddingOptions(padding),
+    maxZoom: INITIAL_FIT_MAX_ZOOM,
+    duration,
+  });
+}
 
 function focusTripRoute(
   map: maplibregl.Map,
   trips: SavedTripPickable[],
   tripKey: string,
+  padding: SavedTripsMapViewportPadding | undefined,
 ) {
-  const trip = trips.find((t) => t.key === tripKey);
+  const trip = trips.find((item) => item.key === tripKey);
   const coords = trip?.previewCoords;
   if (!coords?.length) return;
 
@@ -85,7 +171,7 @@ function focusTripRoute(
   const duration = reduceMotion ? 0 : FOCUS_DURATION_MS;
 
   const bounds = new maplibregl.LngLatBounds();
-  for (const c of coords) bounds.extend(c as [number, number]);
+  for (const coord of coords) bounds.extend(coord as [number, number]);
 
   const sw = bounds.getSouthWest();
   const ne = bounds.getNorthEast();
@@ -96,14 +182,15 @@ function focusTripRoute(
   if (isPointLike || coords.length === 1) {
     map.easeTo({
       center: coords[0] as [number, number],
-      zoom: 15,
+      zoom: POINT_FOCUS_ZOOM,
+      padding: toPaddingOptions(padding),
       duration,
     });
     return;
   }
 
   map.fitBounds(bounds, {
-    padding: FOCUS_PADDING,
+    padding: toPaddingOptions(padding),
     maxZoom: FOCUS_MAX_ZOOM,
     duration,
   });
@@ -113,18 +200,22 @@ interface SavedTripsRoutesMapProps {
   trips: SavedTripPickable[];
   selectedKey: string | null;
   onRouteClick: (tripKey: string) => void;
+  viewportPadding?: SavedTripsMapViewportPadding;
 }
 
 const SavedTripsRoutesMap = forwardRef<SavedTripsRoutesMapHandle, SavedTripsRoutesMapProps>(
-  function SavedTripsRoutesMap({ trips, selectedKey, onRouteClick }, ref) {
+  function SavedTripsRoutesMap({ trips, selectedKey, onRouteClick, viewportPadding }, ref) {
     const containerRef = useRef<HTMLDivElement>(null);
     const mapRef = useRef<maplibregl.Map | null>(null);
     const tripsRef = useRef(trips);
-    const onRouteClickRef = useRef(onRouteClick);
     const selectedKeyRef = useRef(selectedKey);
+    const onRouteClickRef = useRef(onRouteClick);
+    const viewportPaddingRef = useRef<SavedTripsMapViewportPadding | undefined>(viewportPadding);
+
     tripsRef.current = trips;
-    onRouteClickRef.current = onRouteClick;
     selectedKeyRef.current = selectedKey;
+    onRouteClickRef.current = onRouteClick;
+    viewportPaddingRef.current = viewportPadding;
 
     useImperativeHandle(
       ref,
@@ -132,11 +223,12 @@ const SavedTripsRoutesMap = forwardRef<SavedTripsRoutesMapHandle, SavedTripsRout
         frameToTrip(tripKey: string) {
           const map = mapRef.current;
           if (!map?.isStyleLoaded()) return;
+
           requestAnimationFrame(() => {
             try {
               map.stop();
               map.resize();
-              focusTripRoute(map, tripsRef.current, tripKey);
+              focusTripRoute(map, tripsRef.current, tripKey, viewportPaddingRef.current);
             } catch {
               /* ignore */
             }
@@ -146,16 +238,16 @@ const SavedTripsRoutesMap = forwardRef<SavedTripsRoutesMapHandle, SavedTripsRout
       [],
     );
 
-    const fc = buildFeatureCollection(trips);
-    const hasLines = fc.features.length > 0;
+    const featureCollection = buildFeatureCollection(trips);
+    const hasLines = featureCollection.features.length > 0;
 
     useEffect(() => {
       if (!containerRef.current || !hasLines) return;
 
-      const fcInit = buildFeatureCollection(trips);
+      const initialCollection = buildFeatureCollection(trips);
       const center: [number, number] =
-        fcInit.features[0]?.geometry.type === 'LineString'
-          ? (fcInit.features[0].geometry.coordinates[0] as [number, number])
+        initialCollection.features[0]?.geometry.type === 'LineString'
+          ? (initialCollection.features[0].geometry.coordinates[0] as [number, number])
           : [127, 37.5];
 
       const map = new maplibregl.Map({
@@ -201,7 +293,12 @@ const SavedTripsRoutesMap = forwardRef<SavedTripsRoutesMapHandle, SavedTripsRout
       map.on('load', () => {
         map.addSource(SOURCE_ID, {
           type: 'geojson',
-          data: fcInit,
+          data: initialCollection,
+        });
+
+        map.addSource(PHOTO_SOURCE_ID, {
+          type: 'geojson',
+          data: buildSelectedPhotoFeatureCollection(tripsRef.current, selectedKeyRef.current),
         });
 
         map.addLayer({
@@ -228,39 +325,68 @@ const SavedTripsRoutesMap = forwardRef<SavedTripsRoutesMapHandle, SavedTripsRout
           },
         });
 
-        const bounds = new maplibregl.LngLatBounds();
-        for (const f of fcInit.features) {
-          if (f.geometry.type !== 'LineString') continue;
-          for (const c of f.geometry.coordinates) {
-            bounds.extend(c as [number, number]);
-          }
-        }
-        if (!bounds.isEmpty()) {
-          map.fitBounds(bounds, {
-            padding: 48,
-            maxZoom: Math.max(4, Math.min(NATIVE_OSM_MAX_ZOOM, MAP_MAX_ZOOM - 1)),
-          });
-        }
+        map.addLayer({
+          id: PHOTO_HALO_LAYER_ID,
+          type: 'circle',
+          source: PHOTO_SOURCE_ID,
+          paint: {
+            'circle-color': '#f97316',
+            'circle-opacity': 0.22,
+            'circle-radius': [
+              'interpolate',
+              ['linear'],
+              ['zoom'],
+              10,
+              10,
+              14,
+              14,
+            ],
+          },
+        });
 
+        map.addLayer({
+          id: PHOTO_LAYER_ID,
+          type: 'circle',
+          source: PHOTO_SOURCE_ID,
+          paint: {
+            'circle-color': '#f97316',
+            'circle-stroke-color': '#ffffff',
+            'circle-stroke-width': 1.5,
+            'circle-radius': [
+              'interpolate',
+              ['linear'],
+              ['zoom'],
+              10,
+              4,
+              14,
+              6,
+            ],
+          },
+        });
+
+        fitAllTrips(map, tripsRef.current, viewportPaddingRef.current);
         applyLineSelection(map, selectedKeyRef.current);
+        updateSelectedPhotoPoints(map, tripsRef.current, selectedKeyRef.current);
+
         if (selectedKeyRef.current) {
           requestAnimationFrame(() => {
             try {
               map.stop();
-              focusTripRoute(map, tripsRef.current, selectedKeyRef.current!);
+              focusTripRoute(map, tripsRef.current, selectedKeyRef.current!, viewportPaddingRef.current);
             } catch {
               /* ignore */
             }
           });
         }
 
-        const onClick = (e: maplibregl.MapLayerMouseEvent) => {
-          const feats = map.queryRenderedFeatures(e.point, { layers: [HIT_LAYER_ID] });
-          const key = feats[0]?.properties?.tripKey;
-          if (typeof key !== 'string') return;
-          onRouteClickRef.current(key);
+        const handleClick = (event: maplibregl.MapLayerMouseEvent) => {
+          const features = map.queryRenderedFeatures(event.point, { layers: [HIT_LAYER_ID] });
+          const tripKey = features[0]?.properties?.tripKey;
+          if (typeof tripKey !== 'string') return;
+          onRouteClickRef.current(tripKey);
         };
-        map.on('click', HIT_LAYER_ID, onClick);
+
+        map.on('click', HIT_LAYER_ID, handleClick);
         map.on('mouseenter', HIT_LAYER_ID, () => {
           map.getCanvas().style.cursor = 'pointer';
         });
@@ -272,6 +398,7 @@ const SavedTripsRoutesMap = forwardRef<SavedTripsRoutesMapHandle, SavedTripsRout
       });
 
       mapRef.current = map;
+
       return () => {
         map.remove();
         mapRef.current = null;
@@ -281,22 +408,44 @@ const SavedTripsRoutesMap = forwardRef<SavedTripsRoutesMapHandle, SavedTripsRout
     useEffect(() => {
       const map = mapRef.current;
       if (!map?.isStyleLoaded()) return;
-      const src = map.getSource(SOURCE_ID) as maplibregl.GeoJSONSource | undefined;
-      if (src) src.setData(buildFeatureCollection(trips));
+      const source = map.getSource(SOURCE_ID) as maplibregl.GeoJSONSource | undefined;
+      if (source) source.setData(buildFeatureCollection(trips));
+      updateSelectedPhotoPoints(map, trips, selectedKeyRef.current);
     }, [trips]);
 
     useEffect(() => {
       const map = mapRef.current;
       if (!map?.isStyleLoaded()) return;
       applyLineSelection(map, selectedKey);
+      updateSelectedPhotoPoints(map, tripsRef.current, selectedKey);
     }, [selectedKey]);
 
-    if (!hasLines) {
-      return null;
-    }
+    useEffect(() => {
+      const map = mapRef.current;
+      if (!map?.isStyleLoaded()) return;
+
+      const timeoutId = window.setTimeout(() => {
+        try {
+          map.stop();
+          map.resize();
+          if (selectedKeyRef.current) {
+            focusTripRoute(map, tripsRef.current, selectedKeyRef.current, viewportPaddingRef.current);
+          } else {
+            fitAllTrips(map, tripsRef.current, viewportPaddingRef.current);
+          }
+        } catch {
+          /* ignore */
+        }
+      }, RESIZE_REFRAME_DEBOUNCE_MS);
+
+      return () => window.clearTimeout(timeoutId);
+    }, [viewportPadding]);
+
+    if (!hasLines) return null;
 
     return <div ref={containerRef} className="saved-trips-routes-map" />;
   },
 );
 
 export default SavedTripsRoutesMap;
+

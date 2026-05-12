@@ -12,6 +12,7 @@ export interface TripPhoto {
   file?: File;
   objectUrl?: string;
   url?: string;
+  sourceUrl?: string;
   gpsSource: 'exif' | 'interpolated' | 'none';
 }
 

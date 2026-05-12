@@ -11,7 +11,7 @@ interface TripPickerPanelProps {
   variant: 'main' | 'modal';
   /** Disable only the confirm button while JSON is loading */
   confirmDisabled?: boolean;
-  onConfirmLoad: (trip: SavedTripPickable) => void;
+  onConfirmOpen: (trip: SavedTripPickable) => void;
 }
 
 export default function TripPickerPanel({
@@ -20,7 +20,7 @@ export default function TripPickerPanel({
   t,
   variant,
   confirmDisabled = false,
-  onConfirmLoad,
+  onConfirmOpen,
 }: TripPickerPanelProps) {
   const listGroupId = useId();
   const headingId = `${listGroupId}-heading`;
@@ -52,8 +52,8 @@ export default function TripPickerPanel({
 
   const handleConfirm = useCallback(() => {
     if (!selectedTrip) return;
-    onConfirmLoad(selectedTrip);
-  }, [onConfirmLoad, selectedTrip]);
+    onConfirmOpen(selectedTrip);
+  }, [onConfirmOpen, selectedTrip]);
 
   const rootClass =
     variant === 'modal' ? 'trip-picker-panel trip-picker-panel--modal' : 'trip-picker-panel trip-picker-panel--main';
@@ -95,7 +95,7 @@ export default function TripPickerPanel({
                   aria-pressed={selected}
                   onClick={() => selectTrip(s.key)}
                 >
-                  {s.label}
+                  <span className="trip-picker-list__title">{s.label}</span>
                 </button>
               </li>
             );

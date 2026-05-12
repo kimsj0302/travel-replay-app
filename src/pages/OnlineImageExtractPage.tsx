@@ -1,11 +1,10 @@
 import { useCallback, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { fetchArticleData } from '../utils/urlImageExtractor';
-import { parseExifFromFile } from '../utils/exifParser';
-import { parseMultipleGpxFiles } from '../utils/gpxParser';
-import { downloadJson } from '../utils/exportJson';
 import { useI18n } from '../i18n/context';
 import type { TrackPoint } from '../types';
+import { parseExifFromFile } from '../utils/exifParser';
+import { parseMultipleGpxFiles } from '../utils/gpxParser';
+import { fetchArticleData } from '../utils/urlImageExtractor';
 
 const EXTRACT_DELAY_MS = 1500;
 
@@ -265,8 +264,8 @@ export default function OnlineImageExtractPage() {
     const validPhotos = images
       .filter((img) => img.time)
       .map((img) => ({
-        url: img.url,
         time: new Date(img.time).toISOString(),
+        ...(img.sourceUrl ? { sourceUrl: img.sourceUrl } : {}),
       }))
       .sort((a, b) => new Date(a.time).getTime() - new Date(b.time).getTime());
 
@@ -288,16 +287,6 @@ export default function OnlineImageExtractPage() {
       ...(track.length > 0 ? { track } : {}),
     };
   }, [images, title, date, trackPoints]);
-
-  const handleDownload = useCallback(() => {
-    const data = buildJsonData();
-    if (data.photos.length === 0) {
-      setError(t.noTimedImages);
-      return;
-    }
-    const filename = `${data.title.replace(/[^a-zA-Z0-9가-힣]/g, '_')}-trip.json`;
-    downloadJson(data, filename);
-  }, [buildJsonData, t]);
 
   const jsonPreview = showPreview ? JSON.stringify(buildJsonData(), null, 2) : '';
   const validCount = images.filter((img) => img.time).length;
@@ -563,13 +552,6 @@ export default function OnlineImageExtractPage() {
           disabled={validCount === 0}
         >
           {showPreview ? t.closeJson : t.previewJson}
-        </button>
-        <button
-          onClick={handleDownload}
-          className="extract-btn extract-btn--accent"
-          disabled={validCount === 0}
-        >
-          {t.downloadJson(validCount)}
         </button>
         <button
           onClick={() => navigate('/')}
